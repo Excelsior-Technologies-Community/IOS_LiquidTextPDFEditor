@@ -1,9 +1,3 @@
-//
-//  ViewController.swift
-//  LiquidTextPDFEditor
-//
-//  Created by Noman belim on 12/02/26.
-//
 import UIKit
 import PDFKit
 import UniformTypeIdentifiers
@@ -238,58 +232,41 @@ class WorkspaceCanvasView: UIView {
 }
 
 // MARK: - PDF Editing Overlay View
-// Transparent overlay sitting on top of PDFView to place editable text fields over PDF text
+// Shows highlight boxes over selected words. Editing happens via bottom sheet alert.
 class PDFEditOverlayView: UIView {
-    var textFields: [UITextField] = []
+    // Highlight frames currently shown
+    var highlightViews: [UIView] = []
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         backgroundColor = .clear
-        isUserInteractionEnabled = true
+        isUserInteractionEnabled = false   // never blocks taps
     }
     required init?(coder: NSCoder) { fatalError() }
 
-    func addEditField(frame: CGRect, text: String, font: UIFont, onCommit: @escaping (String) -> Void) -> UITextField {
-        let tf = UITextField(frame: frame)
-        tf.text = text
-        tf.font = font
-        tf.textColor = .black
-        tf.backgroundColor = UIColor.yellow.withAlphaComponent(0.25)
-        tf.layer.borderColor = UIColor.systemBlue.cgColor
-        tf.layer.borderWidth = 1.5
-        tf.layer.cornerRadius = 3
-        tf.returnKeyType = .done
-        tf.autocorrectionType = .no
-        tf.clearButtonMode = .whileEditing
+    // Show a yellow highlight box at the given frame to indicate the word being edited
+    func showHighlight(at frame: CGRect) {
+        // Remove previous highlights
+        highlightViews.forEach { $0.removeFromSuperview() }
+        highlightViews.removeAll()
 
-        // Store commit handler
-        let action = CommitAction(onCommit: onCommit)
-        objc_setAssociatedObject(tf, &AssociatedKeys.commitAction, action, .OBJC_ASSOCIATION_RETAIN)
-        tf.addTarget(self, action: #selector(textFieldDone(_:)), for: .editingDidEndOnExit)
-
-        textFields.append(tf)
-        addSubview(tf)
-        tf.becomeFirstResponder()
-        return tf
-    }
-
-    @objc private func textFieldDone(_ tf: UITextField) {
-        if let action = objc_getAssociatedObject(tf, &AssociatedKeys.commitAction) as? CommitAction {
-            action.onCommit(tf.text ?? "")
-        }
-        tf.resignFirstResponder()
+        let box = UIView(frame: frame)
+        box.backgroundColor = UIColor.systemYellow.withAlphaComponent(0.4)
+        box.layer.borderColor = UIColor.systemOrange.cgColor
+        box.layer.borderWidth = 1.5
+        box.layer.cornerRadius = 3
+        box.isUserInteractionEnabled = false
+        highlightViews.append(box)
+        addSubview(box)
     }
 
     func clearAll() {
-        textFields.forEach { $0.removeFromSuperview() }
-        textFields.removeAll()
+        highlightViews.forEach { $0.removeFromSuperview() }
+        highlightViews.removeAll()
     }
-}
 
-private enum AssociatedKeys { static var commitAction = "commitAction" }
-private class CommitAction: NSObject {
-    let onCommit: (String) -> Void
-    init(onCommit: @escaping (String) -> Void) { self.onCommit = onCommit }
+    // Keep textFields as empty array for compatibility
+    var textFields: [UITextField] { [] }
 }
 
 // MARK: - Main ViewController
@@ -323,9 +300,6 @@ class ViewController: UIViewController {
         pdfVC.didMove(toParent: self)
 
         pdfVC.onTextSelected = { [weak self] text in self?.handleTextSelected(text) }
-        pdfVC.onTextTappedForEdit = { [weak self] selection, page in
-            self?.handlePDFTextTappedForEdit(selection: selection, page: page)
-        }
 
         workspaceVC = WorkspaceEmbedVC()
         addChild(workspaceVC)
@@ -340,17 +314,70 @@ class ViewController: UIViewController {
     }
 
     // MARK: - Edit overlay on top of PDF
+    // Single large transparent view that sits above everything in pdfContainerView
+    private var editTapCatcherView: UIView!
+
     private func setupEditOverlay() {
+        // Text field overlay (shows yellow editable fields)
         editOverlay = PDFEditOverlayView()
-        editOverlay.isUserInteractionEnabled = false  // disabled until edit mode on
+        editOverlay.isUserInteractionEnabled = true
         editOverlay.translatesAutoresizingMaskIntoConstraints = false
+
+        // Tap catcher: a UIView on TOP of everything in pdfContainerView
+        // Only visible/active in edit mode
+        editTapCatcherView = UIView()
+        editTapCatcherView.backgroundColor = .clear
+        editTapCatcherView.isUserInteractionEnabled = false
+        editTapCatcherView.translatesAutoresizingMaskIntoConstraints = false
+
+        // Add editOverlay first (lower), then tapCatcher on top
         pdfContainerView.addSubview(editOverlay)
-        NSLayoutConstraint.activate([
-            editOverlay.topAnchor.constraint(equalTo: pdfContainerView.topAnchor),
-            editOverlay.bottomAnchor.constraint(equalTo: pdfContainerView.bottomAnchor),
-            editOverlay.leadingAnchor.constraint(equalTo: pdfContainerView.leadingAnchor),
-            editOverlay.trailingAnchor.constraint(equalTo: pdfContainerView.trailingAnchor)
-        ])
+        pdfContainerView.addSubview(editTapCatcherView)
+
+        for v in [editOverlay!, editTapCatcherView!] {
+            NSLayoutConstraint.activate([
+                v.topAnchor.constraint(equalTo: pdfContainerView.topAnchor),
+                v.bottomAnchor.constraint(equalTo: pdfContainerView.bottomAnchor),
+                v.leadingAnchor.constraint(equalTo: pdfContainerView.leadingAnchor),
+                v.trailingAnchor.constraint(equalTo: pdfContainerView.trailingAnchor)
+            ])
+        }
+
+        // Add tap to the catcher view
+        let tap = UITapGestureRecognizer(target: self, action: #selector(editTapFired(_:)))
+        editTapCatcherView.addGestureRecognizer(tap)
+    }
+
+    // MARK: - The tap that finally works
+    @objc private func editTapFired(_ g: UITapGestureRecognizer) {
+        print("🟢 [STEP 1] editTapFired — edit mode is \(isEditMode)")
+        guard isEditMode else { return }
+
+        let locInContainer = g.location(in: pdfContainerView)
+        print("🟢 [STEP 2] locInContainer: \(locInContainer)")
+
+        // Convert to pdfView coordinates
+        let pdfView = pdfVC.pdfView!
+        let locInPDFView = pdfContainerView.convert(locInContainer, to: pdfView)
+        print("🟢 [STEP 3] locInPDFView: \(locInPDFView), pdfView.bounds: \(pdfView.bounds)")
+
+        guard let page = pdfView.page(for: locInPDFView, nearest: true) else {
+            print("🔴 [FAIL] No page at tap point")
+            return
+        }
+        print("🟢 [STEP 4] Page: \(page.label ?? "?")")
+
+        let pagePoint = pdfView.convert(locInPDFView, to: page)
+        print("🟢 [STEP 5] pagePoint: \(pagePoint)")
+
+        guard let selection = page.selectionForWord(at: pagePoint),
+              let word = selection.string,
+              !word.trimmingCharacters(in: .whitespaces).isEmpty else {
+            print("🔴 [FAIL] No word at tap point")
+            return
+        }
+        print("🟢 [STEP 6] Word: '\(word)'")
+        handlePDFTextTappedForEdit(selection: selection, page: page)
     }
 
     // MARK: - Text selected in PDF (for workspace block)
@@ -382,78 +409,100 @@ class ViewController: UIViewController {
         guard isEditMode else { return }
 
         let selectedText = selection.string ?? ""
-        guard !selectedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        let trimmed = selectedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
 
-        // Get bounds in PDF page space
-        let pageBounds = selection.bounds(for: page)
-
-        // Convert PDF page bounds → PDFView coordinates → pdfContainerView coordinates
         let pdfView = pdfVC.pdfView!
-        guard let pageIndex = pdfView.document?.index(for: page) else { return }
-
-        // Convert bounds from page to view
+        let pageBounds = selection.bounds(for: page)
         let viewBounds = pdfView.convert(pageBounds, from: page)
-        // Convert from pdfView to pdfContainerView
         let containerBounds = pdfView.convert(viewBounds, to: pdfContainerView)
 
-        // Inflate slightly for easy editing
-        let editFrame = containerBounds.insetBy(dx: -4, dy: -4)
+        // Show yellow highlight box over the tapped word
+        editOverlay.showHighlight(at: containerBounds.insetBy(dx: -4, dy: -3))
 
-        // Estimate font size from height of the selection
-        let fontSize = max(10, min(24, containerBounds.height * 0.75))
-        let font = UIFont.systemFont(ofSize: fontSize)
+        let pageIndex = pdfView.document?.index(for: page) ?? 0
 
-        // Remove any existing field at same location
-        editOverlay.textFields.filter { $0.frame.intersects(editFrame) }.forEach {
-            $0.removeFromSuperview()
-        }
-        editOverlay.textFields.removeAll { $0.frame.intersects(editFrame) }
-
-        // Add editable text field
-        _ = editOverlay.addEditField(frame: editFrame, text: selectedText, font: font) { [weak self] newText in
+        // Show keyboard editor as alert — reliable, full-size keyboard, works every time
+        showTextEditAlert(originalText: trimmed) { [weak self] newText in
             guard let self = self else { return }
-            guard newText != selectedText else { return }
+            self.editOverlay.clearAll()
+            guard newText != trimmed else { return }
 
-            // Record edit
             let edit = PDFTextEdit(pageIndex: pageIndex,
-                                   originalText: selectedText,
+                                   originalText: trimmed,
                                    newText: newText,
                                    bounds: pageBounds)
             self.pdfEdits.append(edit)
-
-            // Apply edit visually to the PDF annotation
             self.applyEditToPage(page: page, edit: edit)
-
-            self.showToast("Text updated in PDF ✓")
+            self.showToast("Updated \(trimmed) → \(newText)")
         }
     }
 
-    // MARK: - Apply text edit to PDF page using annotation
-    private func applyEditToPage(page: PDFPage, edit: PDFTextEdit) {
-        guard let pdfView = pdfVC?.pdfView, pdfView.document != nil else { return }
+    // Bottom-sheet style editor — full size text field, guaranteed keyboard
+    private func showTextEditAlert(originalText: String, onSave: @escaping (String) -> Void) {
+        let alert = UIAlertController(
+            title: "Edit PDF Text",
+            message: "Original: \"\(originalText)\"",
+            preferredStyle: .alert
+        )
+        alert.addTextField { tf in
+            tf.text = originalText
+            tf.font = UIFont.systemFont(ofSize: 16)
+            tf.clearButtonMode = .always
+            tf.autocorrectionType = .no
+            tf.selectAll(nil)   // select all so user can retype easily
+        }
+        alert.addAction(UIAlertAction(title: "Save", style: .default) { _ in
+            let newText = alert.textFields?.first?.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard !newText.isEmpty else { return }
+            onSave(newText)
+        })
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { [weak self] _ in
+            self?.editOverlay.clearAll()
+        })
+        present(alert, animated: true)
+    }
 
-        // Create a white rectangle annotation to cover original text
+    // MARK: - Apply text edit to PDF page
+    // Strategy: remove old annotations at same bounds, then add whiteout + new text
+    private func applyEditToPage(page: PDFPage, edit: PDFTextEdit) {
+        guard let pdfView = pdfVC?.pdfView else { return }
+
+        // Remove any previous annotations at this exact location (avoid stacking)
+        let existingAnnotations = page.annotations
+        for annotation in existingAnnotations {
+            if annotation.bounds.intersects(edit.bounds) {
+                page.removeAnnotation(annotation)
+            }
+        }
+
+        // 1. Solid white rectangle — covers the original text completely
         let whiteOut = PDFAnnotation(bounds: edit.bounds, forType: .square, withProperties: nil)
-        whiteOut.color = .white
-        whiteOut.interiorColor = .white
-        whiteOut.border = PDFBorder()
+        whiteOut.color = .clear          // border color = clear
+        whiteOut.interiorColor = .white  // fill = solid white
+        let noBorder = PDFBorder()
+        noBorder.lineWidth = 0
+        whiteOut.border = noBorder
         page.addAnnotation(whiteOut)
 
-        // Create free text annotation with new text
-        let fontSize = max(8, min(20, edit.bounds.height * 0.72))
-        let textAnnotation = PDFAnnotation(bounds: edit.bounds, forType: .freeText, withProperties: nil)
+        // 2. FreeText annotation with new text on top of whiteout
+        // Use slightly larger bounds so text isn't clipped
+        let textBounds = edit.bounds.insetBy(dx: -2, dy: -2)
+        let fontSize = max(8, edit.bounds.height * 0.75)
+
+        let textAnnotation = PDFAnnotation(bounds: textBounds, forType: .freeText, withProperties: nil)
         textAnnotation.contents = edit.newText
         textAnnotation.font = UIFont.systemFont(ofSize: CGFloat(fontSize))
         textAnnotation.fontColor = .black
         textAnnotation.color = .clear
         textAnnotation.interiorColor = .clear
-
-        let border = PDFBorder()
-        border.lineWidth = 0
-        textAnnotation.border = border
+        let textBorder = PDFBorder()
+        textBorder.lineWidth = 0
+        textAnnotation.border = textBorder
         page.addAnnotation(textAnnotation)
 
-        // Refresh the PDF view
+        // Force redraw
+        pdfView.layoutDocumentView()
         pdfView.setNeedsDisplay()
     }
 
@@ -475,29 +524,27 @@ class ViewController: UIViewController {
     }
 
     private func turnOnEditMode() {
+        print("🔵 [MAIN] turnOnEditMode called")
         isEditMode = true
-        editOverlay.isUserInteractionEnabled = true
-        pdfVC.editModeEnabled = true
-
-        // Visual indicator — yellow bar
-        showToast("✏️ Edit Mode ON — tap any PDF text to edit")
-
-        // Tint the PDF container
+        pdfVC.editModeEnabled = true           // disables pdfView scrolling/zoom
+        editTapCatcherView.isUserInteractionEnabled = true   // our tap catcher goes live
+        print("🔵 [MAIN] editTapCatcherView enabled, pdfContainerView.subviews: \(pdfContainerView.subviews.count)")
+        showToast("✏️ Edit Mode ON — tap any word to edit it")
         UIView.animate(withDuration: 0.2) {
             self.pdfContainerView.layer.borderWidth = 2
             self.pdfContainerView.layer.borderColor = UIColor.systemOrange.cgColor
+            self.pdfContainerView.layer.cornerRadius = 4
         }
     }
 
     private func turnOffEditMode() {
         isEditMode = false
-        editOverlay.isUserInteractionEnabled = false
-        pdfVC.editModeEnabled = false
-        editOverlay.textFields.forEach { $0.resignFirstResponder() }
+        pdfVC.editModeEnabled = false          // re-enables pdfView scrolling/zoom
+        editTapCatcherView.isUserInteractionEnabled = false  // deactivate tap catcher
         editOverlay.clearAll()
-
         UIView.animate(withDuration: 0.2) {
             self.pdfContainerView.layer.borderWidth = 0
+            self.pdfContainerView.layer.cornerRadius = 0
         }
         showToast("Edit Mode OFF")
     }
@@ -612,12 +659,8 @@ class ViewController: UIViewController {
             showToast("No PDF loaded"); return
         }
 
-        // Commit any active text fields before export
-        editOverlay.textFields.forEach { tf in
-            if tf.isEditing {
-                tf.sendActions(for: .editingDidEndOnExit)
-            }
-        }
+        // Clear any highlight overlays before export
+        editOverlay.clearAll()
 
         // Generate PDF data from the document (includes all annotations/edits)
         guard let data = document.dataRepresentation() else {
@@ -694,15 +737,15 @@ extension ViewController: UIDocumentPickerDelegate {
 class PDFViewContainer: UIViewController {
     var pdfView: PDFView!
     var onTextSelected: ((String) -> Void)?
-    var onTextTappedForEdit: ((PDFSelection, PDFPage) -> Void)?
 
+    // editModeEnabled is now controlled by ViewController directly
     var editModeEnabled = false {
         didSet {
-            tapRecognizer?.isEnabled = editModeEnabled
+            // Just disable pdfView interaction so it doesn't scroll/zoom in edit mode
+            pdfView.isUserInteractionEnabled = !editModeEnabled
+            print("🔵 [PDFContainer] editModeEnabled=\(editModeEnabled), pdfView interaction=\(!editModeEnabled)")
         }
     }
-
-    private var tapRecognizer: UITapGestureRecognizer?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -722,37 +765,15 @@ class PDFViewContainer: UIViewController {
             pdfView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
         ])
 
-        // Selection observer
         NotificationCenter.default.addObserver(self, selector: #selector(selectionChanged),
                                                name: .PDFViewSelectionChanged, object: pdfView)
-
-        // Tap recognizer for edit mode
-        let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
-        tap.isEnabled = false
-        tap.cancelsTouchesInView = false
-        pdfView.addGestureRecognizer(tap)
-        tapRecognizer = tap
     }
 
     @objc private func selectionChanged() {
-        guard let text = pdfView.currentSelection?.string,
+        guard !editModeEnabled,
+              let text = pdfView.currentSelection?.string,
               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         onTextSelected?(text)
-    }
-
-    @objc private func handleTap(_ g: UITapGestureRecognizer) {
-        guard editModeEnabled else { return }
-        let loc = g.location(in: pdfView)
-
-        // Find the PDF page and character at tap location
-        guard let page = pdfView.page(for: loc, nearest: true) else { return }
-        let pagePoint = pdfView.convert(loc, to: page)
-
-        // Select the word at that point
-        if let sel = page.selectionForWord(at: pagePoint) {
-            pdfView.setCurrentSelection(sel, animate: false)
-            onTextTappedForEdit?(sel, page)
-        }
     }
 
     func loadPDF(url: URL) {

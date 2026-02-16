@@ -40,66 +40,71 @@
                             <constraint firstItem="8fG-QP-0qe" firstAttribute="top" secondItem="8Ik-fc-bhG" secondAttribute="top" id="y0j-t6-cdL"/>
                         </constraints>
                     </view>
-                    <navigationItem key="navigationItem" title="Add" id="gcs-x6-aPT">
-                        <barButtonItem key="leftBarButtonItem" title="Open PDF" style="plain" id="SB3-XG-HUR">
-                            <button key="customView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="mSg-mt-86C">
+                    <navigationItem key="navigationItem" title="Add" id="FfC-SK-GQr">
+                        <barButtonItem key="leftBarButtonItem" title="Open PDF" style="plain" id="pE7-mH-rEB">
+                            <button key="customView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="Blx-HQ-kZe">
                                 <rect key="frame" x="20" y="7.5" width="182" height="35"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="Button"/>
                                 <buttonConfiguration key="configuration" style="plain" title="Open PDF"/>
                                 <connections>
-                                    <action selector="openPDF:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="FGd-R7-eqG"/>
+                                    <action selector="openPDF:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="dM8-oW-EBy"/>
                                 </connections>
                             </button>
                         </barButtonItem>
-                        <button key="titleView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="w0l-JD-MyK">
-                            <rect key="frame" x="208" y="8" width="0.0" height="34"/>
-                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                            <state key="normal" title="Button"/>
-                            <buttonConfiguration key="configuration" style="plain" image="plus.circle.fill" catalog="system"/>
-                            <connections>
-                                <action selector="addSelected:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="ABD-FV-nPl"/>
-                            </connections>
-                        </button>
                         <rightBarButtonItems>
-                            <barButtonItem style="plain" id="h5d-Bc-xqg">
-                                <button key="customView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="8oc-9g-G2l">
+                            <barButtonItem style="plain" id="QIu-PY-9mz">
+                                <button key="customView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="8Ab-B1-smb">
+                                    <rect key="frame" x="800" y="7.5" width="0.0" height="35"/>
+                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                    <state key="normal" title="Button"/>
+                                    <buttonConfiguration key="configuration" style="plain" image="square.and.arrow.up" catalog="system"/>
+                                    <connections>
+                                        <action selector="exportEditedPDF:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="7cd-nI-YlE"/>
+                                    </connections>
+                                </button>
+                            </barButtonItem>
+                            <barButtonItem style="plain" id="4V2-YT-mWm">
+                                <button key="customView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="Yef-8v-gWb">
                                     <rect key="frame" x="634.5" y="7.5" width="165.5" height="35"/>
                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                     <state key="normal" title="Button"/>
                                     <buttonConfiguration key="configuration" style="plain" image="pencil.circle" catalog="system"/>
+                                    <connections>
+                                        <action selector="editPDFMode:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="Tg9-SU-ASD"/>
+                                    </connections>
                                 </button>
                             </barButtonItem>
-                            <barButtonItem style="plain" id="ZUk-wc-Mh0">
-                                <button key="customView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="HKC-gR-gs4">
+                            <barButtonItem style="plain" id="sq5-f8-oTc">
+                                <button key="customView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="gzQ-8Y-uoA">
                                     <rect key="frame" x="452.5" y="7.5" width="182" height="35"/>
                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                     <state key="normal" title="Button"/>
                                     <buttonConfiguration key="configuration" style="plain" image="trash" catalog="system"/>
                                     <connections>
-                                        <action selector="deleteSelected:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="86u-mN-06U"/>
+                                        <action selector="deleteSelected:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="fBj-Ee-pKa"/>
                                     </connections>
                                 </button>
                             </barButtonItem>
-                            <barButtonItem image="pencil" catalog="system" style="plain" id="jy9-lL-csB">
-                                <button key="customView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="YbW-iD-2Ta">
-                                    <rect key="frame" x="270.5" y="7.5" width="182" height="35"/>
+                            <barButtonItem image="pencil" catalog="system" style="plain" id="3Ed-Ga-bgX">
+                                <button key="customView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="Wop-eS-iYV">
+                                    <rect key="frame" x="396" y="7.5" width="56.5" height="35"/>
                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                     <state key="normal" title="Button"/>
                                     <buttonConfiguration key="configuration" style="plain" image="pencil" catalog="system"/>
                                     <connections>
-                                        <action selector="editSelected:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="INu-5J-gDw"/>
+                                        <action selector="editSelected:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="Fq0-cB-1EU"/>
                                     </connections>
                                 </button>
                             </barButtonItem>
-                            <barButtonItem style="plain" id="9z6-fz-YCT">
-                                <button key="customView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="xpw-P1-fA8" userLabel="I">
-                                    <rect key="frame" x="214" y="7.5" width="56.5" height="35"/>
+                            <barButtonItem style="plain" id="Twa-mF-bsv">
+                                <button key="customView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="OB3-fl-ndd">
+                                    <rect key="frame" x="214" y="7.5" width="182" height="35"/>
                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                     <state key="normal" title="Button"/>
-                                    <buttonConfiguration key="configuration" style="plain" image="link" catalog="system" title=" "/>
+                                    <buttonConfiguration key="configuration" style="plain" image="plus.circle.fill" catalog="system"/>
                                     <connections>
-                                        <action selector="linkSelected:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="7sb-AA-J2T"/>
+                                        <action selector="addSelected:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="Drb-cf-Uqr"/>
                                     </connections>
                                 </button>
                             </barButtonItem>
@@ -134,10 +139,10 @@
         </scene>
     </scenes>
     <resources>
-        <image name="link" catalog="system" width="128" height="124"/>
         <image name="pencil" catalog="system" width="128" height="113"/>
         <image name="pencil.circle" catalog="system" width="128" height="123"/>
         <image name="plus.circle.fill" catalog="system" width="128" height="123"/>
+        <image name="square.and.arrow.up" catalog="system" width="110" height="128"/>
         <image name="trash" catalog="system" width="117" height="128"/>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>

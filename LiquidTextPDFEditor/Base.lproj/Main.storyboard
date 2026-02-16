@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23727" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="P8t-fM-BdC">
+    <device id="ipad10_9rounded" orientation="portrait" layout="fullscreen" appearance="light"/>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23721"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--Add-->
+        <scene sceneID="TEI-ra-dbb">
+            <objects>
+                <viewController id="SIQ-5D-kKr" customClass="ViewController" customModule="LiquidTextPDFEditor" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="PS0-4C-gbz">
+                        <rect key="frame" x="0.0" y="0.0" width="820" height="1180"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <stackView opaque="NO" contentMode="scaleToFill" distribution="fillEqually" translatesAutoresizingMaskIntoConstraints="NO" id="8fG-QP-0qe">
+                                <rect key="frame" x="0.0" y="74" width="820" height="1056"/>
+                                <subviews>
+                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="G3H-Uu-UyJ">
+                                        <rect key="frame" x="0.0" y="0.0" width="410" height="1056"/>
+                                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                                    </view>
+                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="jHQ-0z-4yk">
+                                        <rect key="frame" x="410" y="0.0" width="410" height="1056"/>
+                                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                                    </view>
+                                </subviews>
+                            </stackView>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="8Ik-fc-bhG"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <constraints>
+                            <constraint firstItem="8Ik-fc-bhG" firstAttribute="trailing" secondItem="8fG-QP-0qe" secondAttribute="trailing" id="AH0-Pf-ZPB"/>
+                            <constraint firstItem="8Ik-fc-bhG" firstAttribute="bottom" secondItem="8fG-QP-0qe" secondAttribute="bottom" id="Lhu-ZW-EnT"/>
+                            <constraint firstItem="8fG-QP-0qe" firstAttribute="leading" secondItem="8Ik-fc-bhG" secondAttribute="leading" id="nKY-Gh-iHZ"/>
+                            <constraint firstItem="8fG-QP-0qe" firstAttribute="top" secondItem="8Ik-fc-bhG" secondAttribute="top" id="y0j-t6-cdL"/>
+                        </constraints>
+                    </view>
+                    <navigationItem key="navigationItem" title="Add" id="gcs-x6-aPT">
+                        <barButtonItem key="leftBarButtonItem" title="Open PDF" style="plain" id="SB3-XG-HUR">
+                            <button key="customView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="mSg-mt-86C">
+                                <rect key="frame" x="20" y="7.5" width="182" height="35"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="plain" title="Open PDF"/>
+                                <connections>
+                                    <action selector="openPDF:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="FGd-R7-eqG"/>
+                                </connections>
+                            </button>
+                        </barButtonItem>
+                        <button key="titleView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="w0l-JD-MyK">
+                            <rect key="frame" x="208" y="8" width="0.0" height="34"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                            <state key="normal" title="Button"/>
+                            <buttonConfiguration key="configuration" style="plain" image="plus.circle.fill" catalog="system"/>
+                            <connections>
+                                <action selector="addSelected:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="ABD-FV-nPl"/>
+                            </connections>
+                        </button>
+                        <rightBarButtonItems>
+                            <barButtonItem style="plain" id="h5d-Bc-xqg">
+                                <button key="customView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="8oc-9g-G2l">
+                                    <rect key="frame" x="634.5" y="7.5" width="165.5" height="35"/>
+                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                    <state key="normal" title="Button"/>
+                                    <buttonConfiguration key="configuration" style="plain" image="pencil.circle" catalog="system"/>
+                                </button>
+                            </barButtonItem>
+                            <barButtonItem style="plain" id="ZUk-wc-Mh0">
+                                <button key="customView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="HKC-gR-gs4">
+                                    <rect key="frame" x="452.5" y="7.5" width="182" height="35"/>
+                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                    <state key="normal" title="Button"/>
+                                    <buttonConfiguration key="configuration" style="plain" image="trash" catalog="system"/>
+                                    <connections>
+                                        <action selector="deleteSelected:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="86u-mN-06U"/>
+                                    </connections>
+                                </button>
+                            </barButtonItem>
+                            <barButtonItem image="pencil" catalog="system" style="plain" id="jy9-lL-csB">
+                                <button key="customView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="YbW-iD-2Ta">
+                                    <rect key="frame" x="270.5" y="7.5" width="182" height="35"/>
+                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                    <state key="normal" title="Button"/>
+                                    <buttonConfiguration key="configuration" style="plain" image="pencil" catalog="system"/>
+                                    <connections>
+                                        <action selector="editSelected:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="INu-5J-gDw"/>
+                                    </connections>
+                                </button>
+                            </barButtonItem>
+                            <barButtonItem style="plain" id="9z6-fz-YCT">
+                                <button key="customView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="xpw-P1-fA8" userLabel="I">
+                                    <rect key="frame" x="214" y="7.5" width="56.5" height="35"/>
+                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                    <state key="normal" title="Button"/>
+                                    <buttonConfiguration key="configuration" style="plain" image="link" catalog="system" title=" "/>
+                                    <connections>
+                                        <action selector="linkSelected:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="7sb-AA-J2T"/>
+                                    </connections>
+                                </button>
+                            </barButtonItem>
+                        </rightBarButtonItems>
+                    </navigationItem>
+                    <connections>
+                        <outlet property="editorContainerView" destination="jHQ-0z-4yk" id="JE3-YV-QZF"/>
+                        <outlet property="pdfContainerView" destination="G3H-Uu-UyJ" id="tAw-nu-wBP"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="VrK-dd-1zx" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="937" y="-23"/>
+        </scene>
+        <!--Navigation Controller-->
+        <scene sceneID="F0V-fE-DtL">
+            <objects>
+                <navigationController automaticallyAdjustsScrollViewInsets="NO" id="P8t-fM-BdC" sceneMemberID="viewController">
+                    <toolbarItems/>
+                    <navigationBar key="navigationBar" contentMode="scaleToFill" id="rgx-G2-7rG">
+                        <rect key="frame" x="0.0" y="24" width="820" height="50"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </navigationBar>
+                    <nil name="viewControllers"/>
+                    <connections>
+                        <segue destination="SIQ-5D-kKr" kind="relationship" relationship="rootViewController" id="Y8F-sv-VPr"/>
+                    </connections>
+                </navigationController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="kRW-cn-3cC" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="131.70731707317074" y="-23.389830508474578"/>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="link" catalog="system" width="128" height="124"/>
+        <image name="pencil" catalog="system" width="128" height="113"/>
+        <image name="pencil.circle" catalog="system" width="128" height="123"/>
+        <image name="plus.circle.fill" catalog="system" width="128" height="123"/>
+        <image name="trash" catalog="system" width="117" height="128"/>
+        <systemColor name="systemBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+    </resources>
+</document>

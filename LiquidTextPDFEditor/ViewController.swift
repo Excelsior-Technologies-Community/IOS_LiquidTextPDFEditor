@@ -209,7 +209,7 @@ class ViewController: UIViewController {
 
         pdfVC.pdfView.setNeedsDisplay()
     }
-    @IBAction func imageSelectTapped(_ sender: UIButton) { 
+    @IBAction func imageSelectTapped(_ sender: UIButton) {
         isImageSelectionMode.toggle()
     }
     
@@ -848,19 +848,30 @@ class ViewController: UIViewController {
 struct WordBlock: Equatable {
     let id: UUID
     var text: String
+    var image: UIImage?
     var position: CGPoint
     var size: CGSize
-    var image: UIImage? = nil
-    init(text: String? = nil, image: UIImage? = nil, position: CGPoint) {
+
+    init(text: String? = nil,
+         image: UIImage? = nil,
+         position: CGPoint) {
+
         self.id = UUID()
         self.text = text ?? ""
         self.image = image
         self.position = position
-        self.size = image != nil
-            ? CGSize(width: 160, height: 120)
-            : CGSize(width: max(140, (text ?? "").count * 10 + 40), height: 50)
+
+        if image != nil {
+            self.size = CGSize(width: 180, height: 130)
+        } else {
+            self.size = CGSize(width: max(140, (text ?? "").count * 10 + 40),
+                               height: 50)
+        }
     }
-    static func == (lhs: WordBlock, rhs: WordBlock) -> Bool { lhs.id == rhs.id }
+
+    static func == (lhs: WordBlock, rhs: WordBlock) -> Bool {
+        lhs.id == rhs.id
+    }
 }
 
 // MARK: - WordBlockView
@@ -869,6 +880,7 @@ class WordBlockView: UIView {
     var block: WordBlock
     var onTap: ((WordBlockView) -> Void)?
     private let label = UILabel()
+    
     private let imageView = UIImageView()
     init(block: WordBlock) {
         self.block = block
@@ -885,12 +897,15 @@ class WordBlockView: UIView {
         layer.shadowOffset = CGSize(width: 0, height: 2)
         layer.shadowRadius = 4
         if let img = block.image {
+            
             imageView.image = img
             imageView.contentMode = .scaleAspectFit
             imageView.frame = bounds
             imageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
             addSubview(imageView)
+            
         } else {
+            
             label.text = block.text
         }
         // Arrow
@@ -1158,10 +1173,35 @@ class WorkspaceEmbedVC: UIViewController {
         setupHint()
     }
     func addImageBlock(_ image: UIImage) {
+        
         hintLabel.isHidden = true
         
-        let imageBlock = ImageBlockView(image: image)
-        canvas.addSubview(imageBlock)
+        let count = canvas.blockViews.count
+        
+        let block = WordBlock(
+            image: image,
+            position: CGPoint(
+                x: 30,
+                y: 40 + CGFloat(count) * 160
+            )
+        )
+        
+        let bv = canvas.addBlock(block)
+        
+        // Auto-connect like text blocks
+        if count > 0,
+           let prev = canvas.blockViews[safe: count - 1] {
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                self.canvas.connect(from: prev, to: bv)
+            }
+        }
+        
+        scrollView.setContentOffset(
+            CGPoint(x: 0,
+                    y: max(0, CGFloat(count) * 160 - 60)),
+            animated: true
+        )
     }
     private func setupScrollView() {
         scrollView.translatesAutoresizingMaskIntoConstraints = false

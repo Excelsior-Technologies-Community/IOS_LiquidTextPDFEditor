@@ -8,57 +8,93 @@
 import Foundation
 import UIKit
 
-class TextBlockView: UIView {
+import UIKit
+
+final class TextBlockView: UIView, UIGestureRecognizerDelegate, UITextViewDelegate {
+
+    let textView = UITextView()
+    var blockPosition: CGPoint = .zero
     
-    private let label = UILabel()
+    private var dragOffset: CGPoint = .zero
     
-    init(text: String) {
-        super.init(frame: .zero)
-        setupUI(text: text)
-        addPanGesture()
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        setupUI()
+        setupGesture()
     }
-    
+
     required init?(coder: NSCoder) {
-        fatalError()
+        fatalError("init(coder:) has not been implemented")
     }
-    
-    private func setupUI(text: String) {
+
+    private func setupUI() {
+        backgroundColor = .clear
         
-        backgroundColor = .white
         layer.cornerRadius = 8
         layer.shadowColor = UIColor.black.cgColor
         layer.shadowOpacity = 0.2
-        layer.shadowOffset = CGSize(width: 0, height: 4)
-        layer.shadowRadius = 8
+        layer.shadowRadius = 4
+        layer.shadowOffset = CGSize(width: 0, height: 2)
+
+        textView.frame = bounds
+        textView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        textView.backgroundColor = UIColor.white.withAlphaComponent(0.9)
+        textView.font = UIFont.systemFont(ofSize: 16, weight: .medium)
+        textView.isScrollEnabled = false
+        textView.delegate = self
         
-        label.text = text
-        label.numberOfLines = 0
-        label.font = UIFont.systemFont(ofSize: 16)
-        
-        label.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(label)
-        
-        NSLayoutConstraint.activate([
-            label.topAnchor.constraint(equalTo: topAnchor, constant: 10),
-            label.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10),
-            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
-            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10)
-        ])
-        
-        frame.size.height = 60
+        addSubview(textView)
     }
-    
-    private func addPanGesture() {
-        let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePan))
+
+    private func setupGesture() {
+        let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
+        pan.delegate = self
         addGestureRecognizer(pan)
     }
-    
+
     @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
-        let translation = gesture.translation(in: superview)
+        guard let superView = superview else { return }
         
-        center = CGPoint(x: center.x + translation.x,
-                         y: center.y + translation.y)
-        
-        gesture.setTranslation(.zero, in: superview)
+        switch gesture.state {
+            
+        case .began:
+            dragOffset = gesture.location(in: self)
+            superView.bringSubviewToFront(self)
+            
+            UIView.animate(withDuration: 0.15) {
+                self.transform = CGAffineTransform(scaleX: 1.05, y: 1.05)
+                self.layer.shadowOpacity = 0.35
+            }
+
+        case .changed:
+            let location = gesture.location(in: superView)
+            
+            var newOrigin = CGPoint(
+                x: location.x - dragOffset.x,
+                y: location.y - dragOffset.y
+            )
+            
+            // Keep inside parent bounds
+            newOrigin.x = max(0, min(superView.bounds.width - bounds.width, newOrigin.x))
+            newOrigin.y = max(0, min(superView.bounds.height - bounds.height, newOrigin.y))
+            
+            frame.origin = newOrigin
+            blockPosition = newOrigin
+
+        case .ended, .cancelled:
+            UIView.animate(withDuration: 0.15) {
+                self.transform = .identity
+                self.layer.shadowOpacity = 0.2
+            }
+
+        default:
+            break
+        }
+    }
+
+    // 🔥 IMPORTANT: Allow drag + text editing together
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                           shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        return true
     }
 }

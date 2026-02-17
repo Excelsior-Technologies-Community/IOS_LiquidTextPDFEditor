@@ -264,7 +264,8 @@ class ViewController: UIViewController {
     // Child VCs
     private var pdfVC: PDFViewContainer!
     private var workspaceVC: WorkspaceEmbedVC!
-
+    private var searchResults: [PDFSelection] = []
+    private var currentSearchIndex = 0
     // Edit mode
     private var isEditMode = false
     private var pdfEdits: [PDFTextEdit] = []
@@ -273,7 +274,8 @@ class ViewController: UIViewController {
     private var isImageSelectionMode = false
     private var selectionStartPoint: CGPoint?
     private let selectionLayer = CAShapeLayer()
-   
+    private var nextSearchButton: UIBarButtonItem!
+    private var prevSearchButton: UIBarButtonItem!
     // Drag state
     private var dragGhost: UILabel?
     private var dragText: String?
@@ -284,7 +286,23 @@ class ViewController: UIViewController {
         setupWorkspaceSide()
         setupEditOverlay()
         setupDragGesture()
-        
+        prevSearchButton = UIBarButtonItem(
+             image: UIImage(systemName: "chevron.up"),
+             style: .plain,
+             target: self,
+             action: #selector(searchPrevious)
+         )
+         
+         nextSearchButton = UIBarButtonItem(
+             image: UIImage(systemName: "chevron.down"),
+             style: .plain,
+             target: self,
+             action: #selector(searchNext)
+         )
+         
+         // Initially hidden
+         prevSearchButton.isEnabled = false
+         nextSearchButton.isEnabled = false
         let leftTap = UITapGestureRecognizer(target: self,
                                              action: #selector(leftSideTapped))
         pdfContainerView.addGestureRecognizer(leftTap)
@@ -301,7 +319,141 @@ class ViewController: UIViewController {
            selectionLayer.fillColor = UIColor.clear.cgColor
            pdfContainerView.layer.addSublayer(selectionLayer)
     }
+    @IBAction func searchTextTapped(_ sender: Any) {
+        showSearchAlert()
+    }
+    @IBAction func searchNext(_ sender: Any) {
+        guard !searchResults.isEmpty else { return }
+        
+        currentSearchIndex += 1
+        if currentSearchIndex >= searchResults.count {
+            currentSearchIndex = 0
+        }
+        
+        goToSearchResult(index: currentSearchIndex)
+    }
+    @IBAction func searchPrevious(_ sender: Any) {
+        guard !searchResults.isEmpty else { return }
+        
+        currentSearchIndex -= 1
+        if currentSearchIndex < 0 {
+            currentSearchIndex = searchResults.count - 1
+        }
+        
+        goToSearchResult(index: currentSearchIndex)
+    }
     
+    private func showSearchAlert() {
+        
+        let alert = UIAlertController(title: "Search PDF",
+                                      message: "Enter keyword",
+                                      preferredStyle: .alert)
+        
+        alert.addTextField { tf in
+            tf.placeholder = "Enter text..."
+        }
+        
+        alert.addAction(UIAlertAction(title: "Search", style: .default) { [weak self] _ in
+            guard let self = self,
+                  let keyword = alert.textFields?.first?.text,
+                  !keyword.isEmpty else { return }
+            
+            self.searchInPDF(keyword)
+        })
+        
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        
+        present(alert, animated: true)
+    }
+    
+    private func searchInPDF(_ keyword: String) {
+        
+        guard let pdfView = pdfVC.pdfView,
+              let document = pdfView.document else { return }
+        
+        searchResults = document.findString(keyword,
+                                            withOptions: .caseInsensitive)
+        
+        guard !searchResults.isEmpty else {
+            showToast("No results found")
+            hideSearchNavigationButtons()
+            return
+        }
+        
+        currentSearchIndex = 0
+        highlightSearchResults()
+        goToSearchResult(index: 0)
+        
+        showSearchNavigationButtons()
+        showToast("Found \(searchResults.count) matches")
+    }
+    private func showSearchNavigationButtons() {
+        prevSearchButton.isEnabled = true
+        nextSearchButton.isEnabled = true
+        
+        navigationItem.rightBarButtonItems?.append(prevSearchButton)
+        navigationItem.rightBarButtonItems?.append(nextSearchButton)
+    }
+
+    private func hideSearchNavigationButtons() {
+        prevSearchButton.isEnabled = false
+        nextSearchButton.isEnabled = false
+        
+        navigationItem.rightBarButtonItems =
+            navigationItem.rightBarButtonItems?.filter {
+                $0 !== prevSearchButton && $0 !== nextSearchButton
+            }
+    }
+    
+    private func highlightSearchResults() {
+        
+        guard let pdfView = pdfVC.pdfView else { return }
+        
+        pdfView.highlightedSelections = searchResults
+    }
+    private func goToSearchResult(index: Int) {
+        
+        guard index >= 0,
+              index < searchResults.count,
+              let pdfView = pdfVC.pdfView else { return }
+        
+        let selection = searchResults[index]
+        
+        pdfView.setCurrentSelection(selection, animate: true)
+        pdfView.go(to: selection)
+    }
+    @IBAction func highlightSelectedText(_ sender: Any) {
+
+        guard let pdfView = pdfVC.pdfView,
+              let selection = pdfView.currentSelection,
+              let page = selection.pages.first else {
+            showToast("Select text first")
+            return
+        }
+
+        addHighlight(to: selection, on: page)
+
+        pdfView.clearSelection()
+    }
+    private func addHighlight(to selection: PDFSelection, on page: PDFPage) {
+
+        let boundsArray = selection.selectionsByLine()
+
+        for lineSelection in boundsArray {
+
+            guard let lineBounds = lineSelection.bounds(for: page) as CGRect? else { continue }
+
+            let highlight = PDFAnnotation(bounds: lineBounds,
+                                          forType: .highlight,
+                                          withProperties: nil)
+
+            highlight.color = UIColor.yellow.withAlphaComponent(0.4)
+
+            page.addAnnotation(highlight)
+        }
+
+        pdfVC.pdfView.setNeedsDisplay()
+    }
     @IBAction func imageSelectTapped(_ sender: UIBarButtonItem) {
         isImageSelectionMode.toggle()
     }

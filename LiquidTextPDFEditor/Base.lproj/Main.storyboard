@@ -9,7 +9,7 @@
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
-        <!--Add-->
+        <!--View Controller-->
         <scene sceneID="TEI-ra-dbb">
             <objects>
                 <viewController id="SIQ-5D-kKr" customClass="ViewController" customModule="LiquidTextPDFEditor" sceneMemberID="viewController">
@@ -18,30 +18,85 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <stackView opaque="NO" contentMode="scaleToFill" distribution="fillEqually" translatesAutoresizingMaskIntoConstraints="NO" id="8fG-QP-0qe">
-                                <rect key="frame" x="0.0" y="74" width="820" height="1056"/>
+                                <rect key="frame" x="0.0" y="74" width="820" height="1096"/>
                                 <subviews>
                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="G3H-Uu-UyJ">
-                                        <rect key="frame" x="0.0" y="0.0" width="820" height="1056"/>
+                                        <rect key="frame" x="0.0" y="0.0" width="410" height="1096"/>
                                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                     </view>
                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="jHQ-0z-4yk">
-                                        <rect key="frame" x="410" y="0.0" width="410" height="1056"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                        <rect key="frame" x="410" y="0.0" width="410" height="1096"/>
                                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                     </view>
                                 </subviews>
                             </stackView>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="P70-Le-zGv">
+                                <rect key="frame" x="350" y="1090" width="40" height="40"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="40" id="8ts-nt-Ht8"/>
+                                    <constraint firstAttribute="height" constant="40" id="C2V-BW-syK"/>
+                                </constraints>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="plain" image="paintbrush" catalog="system"/>
+                                <connections>
+                                    <action selector="highlightSelectedText:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="IIu-Vz-kOS"/>
+                                </connections>
+                            </button>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="yVz-A7-3Km">
+                                <rect key="frame" x="400" y="1090" width="40" height="40"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="40" id="Has-eK-RUb"/>
+                                    <constraint firstAttribute="height" constant="40" id="eEE-f7-GCz"/>
+                                </constraints>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="plain" image="magnifyingglass" catalog="system"/>
+                                <connections>
+                                    <action selector="searchTextTapped:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="8Zi-31-6Xh"/>
+                                </connections>
+                            </button>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="coT-ty-GBM">
+                                <rect key="frame" x="450" y="1090" width="40" height="40"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="40" id="CEb-UN-mqG"/>
+                                    <constraint firstAttribute="height" constant="40" id="i8f-c9-6ta"/>
+                                </constraints>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="plain" image="chevron.up" catalog="system"/>
+                                <connections>
+                                    <action selector="searchNext:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="Ehr-BR-aWQ"/>
+                                </connections>
+                            </button>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="EBp-GB-sHz">
+                                <rect key="frame" x="500" y="1090" width="40" height="40"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="40" id="TXc-Vs-Vmf"/>
+                                    <constraint firstAttribute="height" constant="40" id="qUu-dc-Ac1"/>
+                                </constraints>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="plain" image="chevron.down" catalog="system"/>
+                                <connections>
+                                    <action selector="searchPrevious:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="DyR-1f-MEP"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="8Ik-fc-bhG"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <constraints>
+                            <constraint firstItem="P70-Le-zGv" firstAttribute="leading" secondItem="8Ik-fc-bhG" secondAttribute="leading" constant="350" id="0gi-ii-xJJ"/>
+                            <constraint firstItem="yVz-A7-3Km" firstAttribute="centerY" secondItem="P70-Le-zGv" secondAttribute="centerY" id="5ux-p2-y43"/>
                             <constraint firstItem="8Ik-fc-bhG" firstAttribute="trailing" secondItem="8fG-QP-0qe" secondAttribute="trailing" id="AH0-Pf-ZPB"/>
-                            <constraint firstItem="8Ik-fc-bhG" firstAttribute="bottom" secondItem="8fG-QP-0qe" secondAttribute="bottom" id="Lhu-ZW-EnT"/>
+                            <constraint firstItem="EBp-GB-sHz" firstAttribute="leading" secondItem="8Ik-fc-bhG" secondAttribute="leading" constant="500" id="DNT-lm-E12"/>
+                            <constraint firstItem="yVz-A7-3Km" firstAttribute="leading" secondItem="8Ik-fc-bhG" secondAttribute="leading" constant="400" id="RNc-wP-5pp"/>
+                            <constraint firstItem="8fG-QP-0qe" firstAttribute="bottom" secondItem="8Ik-fc-bhG" secondAttribute="bottom" constant="40" id="S8u-j9-xyv"/>
+                            <constraint firstItem="coT-ty-GBM" firstAttribute="leading" secondItem="8Ik-fc-bhG" secondAttribute="leading" constant="450" id="VOf-wq-xu5"/>
+                            <constraint firstItem="8Ik-fc-bhG" firstAttribute="bottom" secondItem="P70-Le-zGv" secondAttribute="bottom" id="Zxk-eb-ogJ"/>
+                            <constraint firstItem="EBp-GB-sHz" firstAttribute="centerY" secondItem="coT-ty-GBM" secondAttribute="centerY" id="fPd-4X-ZAW"/>
+                            <constraint firstItem="coT-ty-GBM" firstAttribute="centerY" secondItem="yVz-A7-3Km" secondAttribute="centerY" id="i2e-kI-r9t"/>
                             <constraint firstItem="8fG-QP-0qe" firstAttribute="leading" secondItem="8Ik-fc-bhG" secondAttribute="leading" id="nKY-Gh-iHZ"/>
                             <constraint firstItem="8fG-QP-0qe" firstAttribute="top" secondItem="8Ik-fc-bhG" secondAttribute="top" id="y0j-t6-cdL"/>
                         </constraints>
                     </view>
-                    <navigationItem key="navigationItem" title="Add" id="FfC-SK-GQr">
+                    <navigationItem key="navigationItem" id="FfC-SK-GQr" userLabel="I">
                         <barButtonItem key="leftBarButtonItem" title="Open PDF" style="plain" id="pE7-mH-rEB">
                             <button key="customView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="Blx-HQ-kZe">
                                 <rect key="frame" x="20" y="7.5" width="182" height="35"/>
@@ -56,7 +111,7 @@
                         <rightBarButtonItems>
                             <barButtonItem style="plain" id="QIu-PY-9mz">
                                 <button key="customView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="8Ab-B1-smb">
-                                    <rect key="frame" x="800" y="7.5" width="0.0" height="35"/>
+                                    <rect key="frame" x="752" y="7.5" width="48" height="35"/>
                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                     <state key="normal" title="Button"/>
                                     <buttonConfiguration key="configuration" style="plain" image="square.and.arrow.up" catalog="system"/>
@@ -67,7 +122,7 @@
                             </barButtonItem>
                             <barButtonItem style="plain" id="4V2-YT-mWm">
                                 <button key="customView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="Yef-8v-gWb">
-                                    <rect key="frame" x="800" y="7.5" width="0.0" height="35"/>
+                                    <rect key="frame" x="694" y="7.5" width="50" height="35"/>
                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                     <state key="normal" title="Button"/>
                                     <buttonConfiguration key="configuration" style="plain" image="pencil.circle" catalog="system"/>
@@ -78,7 +133,7 @@
                             </barButtonItem>
                             <barButtonItem style="plain" id="sq5-f8-oTc">
                                 <button key="customView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="gzQ-8Y-uoA">
-                                    <rect key="frame" x="634.5" y="7.5" width="165.5" height="35"/>
+                                    <rect key="frame" x="638" y="7.5" width="48" height="35"/>
                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                     <state key="normal" title="Button"/>
                                     <buttonConfiguration key="configuration" style="plain" image="trash" catalog="system"/>
@@ -89,7 +144,7 @@
                             </barButtonItem>
                             <barButtonItem image="pencil" catalog="system" style="plain" id="3Ed-Ga-bgX">
                                 <button key="customView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="Wop-eS-iYV">
-                                    <rect key="frame" x="578" y="7.5" width="56.5" height="35"/>
+                                    <rect key="frame" x="583.5" y="7.5" width="46.5" height="35"/>
                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                     <state key="normal" title="Button"/>
                                     <buttonConfiguration key="configuration" style="plain" image="pencil" catalog="system"/>
@@ -100,23 +155,12 @@
                             </barButtonItem>
                             <barButtonItem style="plain" id="Twa-mF-bsv">
                                 <button key="customView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="OB3-fl-ndd">
-                                    <rect key="frame" x="396" y="7.5" width="182" height="35"/>
+                                    <rect key="frame" x="393.5" y="7.5" width="182" height="35"/>
                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                     <state key="normal" title="Button"/>
                                     <buttonConfiguration key="configuration" style="plain" image="plus.circle.fill" catalog="system"/>
                                     <connections>
                                         <action selector="addSelected:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="Drb-cf-Uqr"/>
-                                    </connections>
-                                </button>
-                            </barButtonItem>
-                            <barButtonItem style="plain" id="X9A-3I-l9p">
-                                <button key="customView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" id="nXg-Xx-v7b">
-                                    <rect key="frame" x="214" y="7.5" width="182" height="35"/>
-                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                    <state key="normal" title="Button"/>
-                                    <buttonConfiguration key="configuration" style="plain" image="crop" catalog="system" title=" "/>
-                                    <connections>
-                                        <action selector="imageSelectTapped:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="fkh-eP-mOf"/>
                                     </connections>
                                 </button>
                             </barButtonItem>
@@ -151,7 +195,10 @@
         </scene>
     </scenes>
     <resources>
-        <image name="crop" catalog="system" width="128" height="116"/>
+        <image name="chevron.down" catalog="system" width="128" height="70"/>
+        <image name="chevron.up" catalog="system" width="128" height="70"/>
+        <image name="magnifyingglass" catalog="system" width="128" height="117"/>
+        <image name="paintbrush" catalog="system" width="122" height="128"/>
         <image name="pencil" catalog="system" width="128" height="113"/>
         <image name="pencil.circle" catalog="system" width="128" height="123"/>
         <image name="plus.circle.fill" catalog="system" width="128" height="123"/>

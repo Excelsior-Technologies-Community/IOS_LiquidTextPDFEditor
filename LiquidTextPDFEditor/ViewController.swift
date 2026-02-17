@@ -11,250 +11,6 @@ struct PDFTextEdit {
     let bounds: CGRect
 }
 
-struct WordBlock: Equatable {
-    let id: UUID
-    var text: String
-    var position: CGPoint
-    var size: CGSize
-    var image: UIImage? = nil
-    init(text: String? = nil, image: UIImage? = nil, position: CGPoint) {
-        self.id = UUID()
-        self.text = text ?? ""
-        self.image = image
-        self.position = position
-        self.size = image != nil
-            ? CGSize(width: 160, height: 120)
-            : CGSize(width: max(140, (text ?? "").count * 10 + 40), height: 50)
-    }
-    static func == (lhs: WordBlock, rhs: WordBlock) -> Bool { lhs.id == rhs.id }
-}
-
-// MARK: - WordBlockView
-
-class WordBlockView: UIView {
-    var block: WordBlock
-    var onTap: ((WordBlockView) -> Void)?
-    private let label = UILabel()
-    private let imageView = UIImageView()
-    init(block: WordBlock) {
-        self.block = block
-        super.init(frame: CGRect(origin: block.position, size: block.size))
-        setupUI()
-    }
-    required init?(coder: NSCoder) { fatalError() }
-
-    private func setupUI() {
-        backgroundColor = .white
-        layer.cornerRadius = 6
-        layer.shadowColor = UIColor.black.cgColor
-        layer.shadowOpacity = 0.18
-        layer.shadowOffset = CGSize(width: 0, height: 2)
-        layer.shadowRadius = 4
-        if let img = block.image {
-            imageView.image = img
-            imageView.contentMode = .scaleAspectFit
-            imageView.frame = bounds
-            imageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-            addSubview(imageView)
-        } else {
-            label.text = block.text
-        }
-        // Arrow
-        let av = UIView(frame: CGRect(x: -14, y: 15, width: 14, height: 20))
-        av.backgroundColor = .clear
-        let al = CAShapeLayer()
-        let p = UIBezierPath()
-        p.move(to: .zero)
-        p.addLine(to: CGPoint(x: 14, y: 10))
-        p.addLine(to: CGPoint(x: 0, y: 20))
-        p.close()
-        al.path = p.cgPath
-        al.fillColor = UIColor(white: 0.75, alpha: 1).cgColor
-        av.layer.addSublayer(al)
-        addSubview(av)
-
-        label.text = block.text
-        label.font = UIFont.systemFont(ofSize: 17)
-        label.textColor = .black
-        label.numberOfLines = 1
-        label.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(label)
-        NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
-            label.centerYAnchor.constraint(equalTo: centerYAnchor)
-        ])
-        addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapped)))
-    }
-
-    func setSelected(_ on: Bool) {
-        backgroundColor = on ? UIColor(red: 0.53, green: 0.81, blue: 0.98, alpha: 1) : .white
-        layer.borderWidth = on ? 2 : 0
-        layer.borderColor = UIColor.systemBlue.cgColor
-    }
-
-    func updateText(_ t: String) {
-        block.text = t; label.text = t
-        frame.size.width = CGFloat(max(140, t.count * 10 + 40))
-        block.size.width = frame.size.width
-    }
-
-    @objc private func tapped() { onTap?(self) }
-}
-
-// MARK: - FlowConnectorView
-
-class FlowConnectorView: UIView {
-    var fromBlock: WordBlockView
-    var toBlock: WordBlockView
-    private let shapeLayer = CAShapeLayer()
-
-    init(from: WordBlockView, to: WordBlockView) {
-        self.fromBlock = from; self.toBlock = to
-        super.init(frame: .zero)
-        isUserInteractionEnabled = false
-        backgroundColor = .clear
-        layer.addSublayer(shapeLayer)
-        shapeLayer.fillColor = UIColor(white: 0.82, alpha: 1).cgColor
-        shapeLayer.strokeColor = UIColor.clear.cgColor
-    }
-    required init?(coder: NSCoder) { fatalError() }
-
-    func updatePath() {
-        guard let sv = superview else { return }
-        frame = sv.bounds
-        let f = fromBlock.frame, t = toBlock.frame
-        let midY = f.maxY + (t.minY - f.maxY) / 2
-        let path = UIBezierPath()
-        path.move(to: CGPoint(x: f.minX, y: f.maxY))
-        path.addCurve(to: CGPoint(x: t.minX, y: t.minY),
-                      controlPoint1: CGPoint(x: f.minX - 20, y: midY),
-                      controlPoint2: CGPoint(x: t.minX - 20, y: midY))
-        path.addLine(to: CGPoint(x: t.maxX, y: t.minY))
-        path.addCurve(to: CGPoint(x: f.maxX, y: f.maxY),
-                      controlPoint1: CGPoint(x: t.maxX + 20, y: midY),
-                      controlPoint2: CGPoint(x: f.maxX + 20, y: midY))
-        path.close()
-        shapeLayer.path = path.cgPath
-    }
-}
-
-// MARK: - WorkspaceCanvasView
-
-class WorkspaceCanvasView: UIView {
-    var blockViews: [WordBlockView] = []
-    var connectors: [FlowConnectorView] = []
-    var onBlockTapped: ((WordBlockView) -> Void)?
-    private var dragOffset = CGPoint.zero
-
-    override func draw(_ rect: CGRect) {
-        guard let ctx = UIGraphicsGetCurrentContext() else { return }
-        let sp: CGFloat = 28, r: CGFloat = 1.5
-        ctx.setFillColor(UIColor(white: 0.72, alpha: 0.6).cgColor)
-        var x: CGFloat = sp / 2
-        while x < rect.width {
-            var y: CGFloat = sp / 2
-            while y < rect.height {
-                ctx.fillEllipse(in: CGRect(x: x-r, y: y-r, width: r*2, height: r*2))
-                y += sp
-            }
-            x += sp
-        }
-    }
-
-    @discardableResult
-    func addBlock(_ block: WordBlock) -> WordBlockView {
-        let bv = WordBlockView(block: block)
-        bv.onTap = { [weak self] v in self?.onBlockTapped?(v) }
-        bv.addGestureRecognizer(UIPanGestureRecognizer(target: self, action: #selector(pan(_:))))
-        bv.addGestureRecognizer(UILongPressGestureRecognizer(target: self, action: #selector(lp(_:))))
-        blockViews.append(bv)
-        addSubview(bv)
-        bv.alpha = 0
-        bv.transform = CGAffineTransform(scaleX: 0.7, y: 0.7)
-        UIView.animate(withDuration: 0.4, delay: 0, usingSpringWithDamping: 0.65, initialSpringVelocity: 0.5) {
-            bv.alpha = 1; bv.transform = .identity
-        }
-        return bv
-    }
-
-    func removeBlock(_ bv: WordBlockView) {
-        connectors.filter { $0.fromBlock === bv || $0.toBlock === bv }.forEach { $0.removeFromSuperview() }
-        connectors.removeAll { $0.fromBlock === bv || $0.toBlock === bv }
-        blockViews.removeAll { $0 === bv }
-        UIView.animate(withDuration: 0.2, animations: {
-            bv.alpha = 0; bv.transform = CGAffineTransform(scaleX: 0.5, y: 0.5)
-        }) { _ in bv.removeFromSuperview() }
-    }
-
-    func connect(from: WordBlockView, to: WordBlockView) {
-        guard !connectors.contains(where: { $0.fromBlock === from && $0.toBlock === to }) else { return }
-        let c = FlowConnectorView(from: from, to: to)
-        connectors.append(c); insertSubview(c, at: 0); c.updatePath()
-    }
-
-    func updateAllConnectors() { connectors.forEach { $0.updatePath() } }
-
-    @objc private func pan(_ g: UIPanGestureRecognizer) {
-        guard let bv = g.view as? WordBlockView else { return }
-        switch g.state {
-        case .began:
-            dragOffset = g.location(in: bv)
-            bringSubviewToFront(bv)
-            UIView.animate(withDuration: 0.1) { bv.transform = CGAffineTransform(scaleX: 1.06, y: 1.06) }
-        case .changed:
-            let loc = g.location(in: self)
-            bv.frame.origin = CGPoint(
-                x: max(20, min(bounds.width - bv.bounds.width - 20, loc.x - dragOffset.x)),
-                y: max(20, min(bounds.height - bv.bounds.height - 20, loc.y - dragOffset.y))
-            )
-            bv.block.position = bv.frame.origin
-            updateAllConnectors()
-        case .ended, .cancelled:
-            UIView.animate(withDuration: 0.2) { bv.transform = .identity }
-        default: break
-        }
-    }
-
-    @objc private func lp(_ g: UILongPressGestureRecognizer) {
-        guard g.state == .began, let bv = g.view as? WordBlockView else { return }
-        onBlockTapped?(bv)
-    }
-}
-
-// MARK: - PDFEditOverlayView
-
-class PDFEditOverlayView: UIView {
-    private var highlights: [UIView] = []
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        backgroundColor = .clear
-        isUserInteractionEnabled = false
-    }
-    required init?(coder: NSCoder) { fatalError() }
-
-    func showHighlight(at frame: CGRect) {
-        highlights.forEach { $0.removeFromSuperview() }
-        highlights.removeAll()
-        let box = UIView(frame: frame)
-        box.backgroundColor = UIColor.systemYellow.withAlphaComponent(0.45)
-        box.layer.borderColor = UIColor.systemOrange.cgColor
-        box.layer.borderWidth = 1.5
-        box.layer.cornerRadius = 3
-        box.isUserInteractionEnabled = false
-        highlights.append(box)
-        addSubview(box)
-    }
-
-    func clearAll() {
-        highlights.forEach { $0.removeFromSuperview() }
-        highlights.removeAll()
-    }
-}
-
-// MARK: - Main ViewController
-
 class ViewController: UIViewController {
 
     // MARK: IBOutlets — must match storyboard
@@ -303,9 +59,7 @@ class ViewController: UIViewController {
          // Initially hidden
          prevSearchButton.isEnabled = false
          nextSearchButton.isEnabled = false
-        let leftTap = UITapGestureRecognizer(target: self,
-                                             action: #selector(leftSideTapped))
-        pdfContainerView.addGestureRecognizer(leftTap)
+        
        let longPress = UILongPressGestureRecognizer(target: self,
                                                      action: #selector(workspaceLongPressed(_:)))
         editorContainerView.addGestureRecognizer(longPress)
@@ -455,7 +209,7 @@ class ViewController: UIViewController {
 
         pdfVC.pdfView.setNeedsDisplay()
     }
-    @IBAction func imageSelectTapped(_ sender: UIBarButtonItem) {
+    @IBAction func imageSelectTapped(_ sender: UIButton) { 
         isImageSelectionMode.toggle()
     }
     
@@ -576,29 +330,7 @@ class ViewController: UIViewController {
         editorContainerView.addSubview(block)
     }
     
-    @objc private func leftSideTapped() {
-        
-        let alert = UIAlertController(title: "Add Your Text",
-                                      message: "Enter custom text",
-                                      preferredStyle: .alert)
-        
-        alert.addTextField { textField in
-            textField.placeholder = "Enter your text..."
-        }
-        
-        let addAction = UIAlertAction(title: "Add", style: .default) { _ in
-            
-            guard let text = alert.textFields?.first?.text,
-                  !text.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-            
-            self.addCustomTextToWorkspace(text)
-        }
-        
-        alert.addAction(addAction)
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        
-        present(alert, animated: true)
-    }
+     
     // MARK: - Setup PDF side
 
     private func setupPDFSide() {
@@ -649,8 +381,7 @@ class ViewController: UIViewController {
         thumbnailView.thumbnailSize = CGSize(width: 80, height: 120)
 
         thumbnailContainerView.addSubview(thumbnailView)
-        thumbnailView.layer.borderWidth = 1
-        thumbnailView.layer.borderColor = UIColor.systemGray.cgColor
+
         NSLayoutConstraint.activate([
             thumbnailView.topAnchor.constraint(equalTo: thumbnailContainerView.topAnchor),
             thumbnailView.bottomAnchor.constraint(equalTo: thumbnailContainerView.bottomAnchor),
@@ -1114,6 +845,250 @@ class ViewController: UIViewController {
         UIView.animate(withDuration: 0.25, delay: 2.5) { t.alpha = 0 } completion: { _ in t.removeFromSuperview() }
     }
 }
+struct WordBlock: Equatable {
+    let id: UUID
+    var text: String
+    var position: CGPoint
+    var size: CGSize
+    var image: UIImage? = nil
+    init(text: String? = nil, image: UIImage? = nil, position: CGPoint) {
+        self.id = UUID()
+        self.text = text ?? ""
+        self.image = image
+        self.position = position
+        self.size = image != nil
+            ? CGSize(width: 160, height: 120)
+            : CGSize(width: max(140, (text ?? "").count * 10 + 40), height: 50)
+    }
+    static func == (lhs: WordBlock, rhs: WordBlock) -> Bool { lhs.id == rhs.id }
+}
+
+// MARK: - WordBlockView
+
+class WordBlockView: UIView {
+    var block: WordBlock
+    var onTap: ((WordBlockView) -> Void)?
+    private let label = UILabel()
+    private let imageView = UIImageView()
+    init(block: WordBlock) {
+        self.block = block
+        super.init(frame: CGRect(origin: block.position, size: block.size))
+        setupUI()
+    }
+    required init?(coder: NSCoder) { fatalError() }
+
+    private func setupUI() {
+        backgroundColor = .white
+        layer.cornerRadius = 6
+        layer.shadowColor = UIColor.black.cgColor
+        layer.shadowOpacity = 0.18
+        layer.shadowOffset = CGSize(width: 0, height: 2)
+        layer.shadowRadius = 4
+        if let img = block.image {
+            imageView.image = img
+            imageView.contentMode = .scaleAspectFit
+            imageView.frame = bounds
+            imageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            addSubview(imageView)
+        } else {
+            label.text = block.text
+        }
+        // Arrow
+        let av = UIView(frame: CGRect(x: -14, y: 15, width: 14, height: 20))
+        av.backgroundColor = .clear
+        let al = CAShapeLayer()
+        let p = UIBezierPath()
+        p.move(to: .zero)
+        p.addLine(to: CGPoint(x: 14, y: 10))
+        p.addLine(to: CGPoint(x: 0, y: 20))
+        p.close()
+        al.path = p.cgPath
+        al.fillColor = UIColor(white: 0.75, alpha: 1).cgColor
+        av.layer.addSublayer(al)
+        addSubview(av)
+
+        label.text = block.text
+        label.font = UIFont.systemFont(ofSize: 17)
+        label.textColor = .black
+        label.numberOfLines = 1
+        label.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(label)
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
+            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
+            label.centerYAnchor.constraint(equalTo: centerYAnchor)
+        ])
+        addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapped)))
+    }
+
+    func setSelected(_ on: Bool) {
+        backgroundColor = on ? UIColor(red: 0.53, green: 0.81, blue: 0.98, alpha: 1) : .white
+        layer.borderWidth = on ? 2 : 0
+        layer.borderColor = UIColor.systemBlue.cgColor
+    }
+
+    func updateText(_ t: String) {
+        block.text = t; label.text = t
+        frame.size.width = CGFloat(max(140, t.count * 10 + 40))
+        block.size.width = frame.size.width
+    }
+
+    @objc private func tapped() { onTap?(self) }
+}
+
+// MARK: - FlowConnectorView
+
+class FlowConnectorView: UIView {
+    var fromBlock: WordBlockView
+    var toBlock: WordBlockView
+    private let shapeLayer = CAShapeLayer()
+
+    init(from: WordBlockView, to: WordBlockView) {
+        self.fromBlock = from; self.toBlock = to
+        super.init(frame: .zero)
+        isUserInteractionEnabled = false
+        backgroundColor = .clear
+        layer.addSublayer(shapeLayer)
+        shapeLayer.fillColor = UIColor(white: 0.82, alpha: 1).cgColor
+        shapeLayer.strokeColor = UIColor.clear.cgColor
+    }
+    required init?(coder: NSCoder) { fatalError() }
+
+    func updatePath() {
+        guard let sv = superview else { return }
+        frame = sv.bounds
+        let f = fromBlock.frame, t = toBlock.frame
+        let midY = f.maxY + (t.minY - f.maxY) / 2
+        let path = UIBezierPath()
+        path.move(to: CGPoint(x: f.minX, y: f.maxY))
+        path.addCurve(to: CGPoint(x: t.minX, y: t.minY),
+                      controlPoint1: CGPoint(x: f.minX - 20, y: midY),
+                      controlPoint2: CGPoint(x: t.minX - 20, y: midY))
+        path.addLine(to: CGPoint(x: t.maxX, y: t.minY))
+        path.addCurve(to: CGPoint(x: f.maxX, y: f.maxY),
+                      controlPoint1: CGPoint(x: t.maxX + 20, y: midY),
+                      controlPoint2: CGPoint(x: f.maxX + 20, y: midY))
+        path.close()
+        shapeLayer.path = path.cgPath
+    }
+}
+
+// MARK: - WorkspaceCanvasView
+
+class WorkspaceCanvasView: UIView {
+    var blockViews: [WordBlockView] = []
+    var connectors: [FlowConnectorView] = []
+    var onBlockTapped: ((WordBlockView) -> Void)?
+    private var dragOffset = CGPoint.zero
+
+    override func draw(_ rect: CGRect) {
+        guard let ctx = UIGraphicsGetCurrentContext() else { return }
+        let sp: CGFloat = 28, r: CGFloat = 1.5
+        ctx.setFillColor(UIColor(white: 0.72, alpha: 0.6).cgColor)
+        var x: CGFloat = sp / 2
+        while x < rect.width {
+            var y: CGFloat = sp / 2
+            while y < rect.height {
+                ctx.fillEllipse(in: CGRect(x: x-r, y: y-r, width: r*2, height: r*2))
+                y += sp
+            }
+            x += sp
+        }
+    }
+
+    @discardableResult
+    func addBlock(_ block: WordBlock) -> WordBlockView {
+        let bv = WordBlockView(block: block)
+        bv.onTap = { [weak self] v in self?.onBlockTapped?(v) }
+        bv.addGestureRecognizer(UIPanGestureRecognizer(target: self, action: #selector(pan(_:))))
+        bv.addGestureRecognizer(UILongPressGestureRecognizer(target: self, action: #selector(lp(_:))))
+        blockViews.append(bv)
+        addSubview(bv)
+        bv.alpha = 0
+        bv.transform = CGAffineTransform(scaleX: 0.7, y: 0.7)
+        UIView.animate(withDuration: 0.4, delay: 0, usingSpringWithDamping: 0.65, initialSpringVelocity: 0.5) {
+            bv.alpha = 1; bv.transform = .identity
+        }
+        return bv
+    }
+
+    func removeBlock(_ bv: WordBlockView) {
+        connectors.filter { $0.fromBlock === bv || $0.toBlock === bv }.forEach { $0.removeFromSuperview() }
+        connectors.removeAll { $0.fromBlock === bv || $0.toBlock === bv }
+        blockViews.removeAll { $0 === bv }
+        UIView.animate(withDuration: 0.2, animations: {
+            bv.alpha = 0; bv.transform = CGAffineTransform(scaleX: 0.5, y: 0.5)
+        }) { _ in bv.removeFromSuperview() }
+    }
+
+    func connect(from: WordBlockView, to: WordBlockView) {
+        guard !connectors.contains(where: { $0.fromBlock === from && $0.toBlock === to }) else { return }
+        let c = FlowConnectorView(from: from, to: to)
+        connectors.append(c); insertSubview(c, at: 0); c.updatePath()
+    }
+
+    func updateAllConnectors() { connectors.forEach { $0.updatePath() } }
+
+    @objc private func pan(_ g: UIPanGestureRecognizer) {
+        guard let bv = g.view as? WordBlockView else { return }
+        switch g.state {
+        case .began:
+            dragOffset = g.location(in: bv)
+            bringSubviewToFront(bv)
+            UIView.animate(withDuration: 0.1) { bv.transform = CGAffineTransform(scaleX: 1.06, y: 1.06) }
+        case .changed:
+            let loc = g.location(in: self)
+            bv.frame.origin = CGPoint(
+                x: max(20, min(bounds.width - bv.bounds.width - 20, loc.x - dragOffset.x)),
+                y: max(20, min(bounds.height - bv.bounds.height - 20, loc.y - dragOffset.y))
+            )
+            bv.block.position = bv.frame.origin
+            updateAllConnectors()
+        case .ended, .cancelled:
+            UIView.animate(withDuration: 0.2) { bv.transform = .identity }
+        default: break
+        }
+    }
+
+    @objc private func lp(_ g: UILongPressGestureRecognizer) {
+        guard g.state == .began, let bv = g.view as? WordBlockView else { return }
+        onBlockTapped?(bv)
+    }
+}
+
+// MARK: - PDFEditOverlayView
+
+class PDFEditOverlayView: UIView {
+    private var highlights: [UIView] = []
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        backgroundColor = .clear
+        isUserInteractionEnabled = false
+    }
+    required init?(coder: NSCoder) { fatalError() }
+
+    func showHighlight(at frame: CGRect) {
+        highlights.forEach { $0.removeFromSuperview() }
+        highlights.removeAll()
+        let box = UIView(frame: frame)
+        box.backgroundColor = UIColor.systemYellow.withAlphaComponent(0.45)
+        box.layer.borderColor = UIColor.systemOrange.cgColor
+        box.layer.borderWidth = 1.5
+        box.layer.cornerRadius = 3
+        box.isUserInteractionEnabled = false
+        highlights.append(box)
+        addSubview(box)
+    }
+
+    func clearAll() {
+        highlights.forEach { $0.removeFromSuperview() }
+        highlights.removeAll()
+    }
+}
+
+// MARK: - Main ViewController
+
 
 // MARK: - Document Picker
 
@@ -1250,17 +1225,13 @@ class WorkspaceEmbedVC: UIViewController {
     }
 }
 
-// MARK: - Helpers
+
 
 extension Array {
     subscript(safe i: Int) -> Element? { indices.contains(i) ? self[i] : nil }
 }
 
-// MARK: - DragInterceptView
-// Uses raw touch overrides instead of UIGestureRecognizer.
-// This completely bypasses PDFKit gesture conflicts.
-// Holds for 0.3s then fires onLongPress — no gesture cancellation possible.
-
+ 
 class DragInterceptView: UIView {
     var onLongPress: ((CGPoint) -> Void)?
     var onMove: ((CGPoint) -> Void)?

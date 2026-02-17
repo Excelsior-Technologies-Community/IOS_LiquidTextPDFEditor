@@ -279,7 +279,7 @@ class ViewController: UIViewController {
     // Drag state
     private var dragGhost: UILabel?
     private var dragText: String?
-
+    private var thumbnailView: PDFThumbnailView!
     override func viewDidLoad() {
         super.viewDidLoad()
         setupPDFSide()
@@ -319,6 +319,7 @@ class ViewController: UIViewController {
            selectionLayer.fillColor = UIColor.clear.cgColor
            pdfContainerView.layer.addSublayer(selectionLayer)
     }
+    @IBOutlet weak var thumbnailContainerView: UIView!
     @IBAction func searchTextTapped(_ sender: Any) {
         showSearchAlert()
     }
@@ -613,6 +614,7 @@ class ViewController: UIViewController {
         ])
         pdfVC.didMove(toParent: self)
         pdfVC.onTextSelected = { [weak self] text in self?.handleTextSelected(text) }
+        setupThumbnails()
     }
 
     // MARK: - Setup Workspace side
@@ -635,7 +637,27 @@ class ViewController: UIViewController {
     }
 
     // MARK: - Edit overlay setup
+    private func setupThumbnails() {
 
+        guard let pdfView = pdfVC.pdfView else { return }
+
+        thumbnailView = PDFThumbnailView()
+        thumbnailView.translatesAutoresizingMaskIntoConstraints = false
+        thumbnailView.pdfView = pdfView
+        thumbnailView.layoutMode = .vertical
+        thumbnailView.backgroundColor = UIColor(white: 0.95, alpha: 1)
+        thumbnailView.thumbnailSize = CGSize(width: 80, height: 120)
+
+        thumbnailContainerView.addSubview(thumbnailView)
+        thumbnailView.layer.borderWidth = 1
+        thumbnailView.layer.borderColor = UIColor.systemGray.cgColor
+        NSLayoutConstraint.activate([
+            thumbnailView.topAnchor.constraint(equalTo: thumbnailContainerView.topAnchor),
+            thumbnailView.bottomAnchor.constraint(equalTo: thumbnailContainerView.bottomAnchor),
+            thumbnailView.leadingAnchor.constraint(equalTo: thumbnailContainerView.leadingAnchor),
+            thumbnailView.trailingAnchor.constraint(equalTo: thumbnailContainerView.trailingAnchor)
+        ])
+    }
     private func setupEditOverlay() {
         // Yellow highlight overlay — non-interactive, just visual
         editOverlay = PDFEditOverlayView()

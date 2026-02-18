@@ -880,7 +880,9 @@ class WordBlockView: UIView {
     var block: WordBlock
     var onTap: ((WordBlockView) -> Void)?
     private let label = UILabel()
-    
+    private let resizeHandle = UIView()
+    private var initialSize: CGSize = .zero
+    private var initialTouchPoint: CGPoint = .zero
     private let imageView = UIImageView()
     init(block: WordBlock) {
         self.block = block
@@ -896,6 +898,18 @@ class WordBlockView: UIView {
         layer.shadowOpacity = 0.18
         layer.shadowOffset = CGSize(width: 0, height: 2)
         layer.shadowRadius = 4
+        resizeHandle.backgroundColor = UIColor.systemBlue
+        resizeHandle.frame = CGRect(x: bounds.width - 16,
+                                    y: bounds.height - 16,
+                                    width: 16,
+                                    height: 16)
+        resizeHandle.layer.cornerRadius = 4
+        resizeHandle.autoresizingMask = [.flexibleLeftMargin, .flexibleTopMargin]
+        addSubview(resizeHandle)
+
+        let pan = UIPanGestureRecognizer(target: self,
+                                         action: #selector(handleResize(_:)))
+        resizeHandle.addGestureRecognizer(pan)
         if let img = block.image {
             
             imageView.image = img
@@ -941,7 +955,38 @@ class WordBlockView: UIView {
         layer.borderWidth = on ? 2 : 0
         layer.borderColor = UIColor.systemBlue.cgColor
     }
-
+    @objc private func handleResize(_ gesture: UIPanGestureRecognizer) {
+        
+        guard let superview = superview as? WorkspaceCanvasView else { return }
+        
+        switch gesture.state {
+            
+        case .began:
+            initialSize = frame.size
+            initialTouchPoint = gesture.location(in: superview)
+            
+        case .changed:
+            let currentPoint = gesture.location(in: superview)
+            
+            let deltaX = currentPoint.x - initialTouchPoint.x
+            let deltaY = currentPoint.y - initialTouchPoint.y
+            
+            var newWidth = max(120, initialSize.width + deltaX)
+            var newHeight = max(50, initialSize.height + deltaY)
+            
+            // Prevent overflow
+            newWidth = min(newWidth, superview.bounds.width - frame.origin.x)
+            newHeight = min(newHeight, superview.bounds.height - frame.origin.y)
+            
+            frame.size = CGSize(width: newWidth, height: newHeight)
+            block.size = frame.size
+            
+            superview.updateAllConnectors()
+            
+        default:
+            break
+        }
+    }
     func updateText(_ t: String) {
         block.text = t; label.text = t
         frame.size.width = CGFloat(max(140, t.count * 10 + 40))

@@ -84,9 +84,9 @@
                                     <constraint firstAttribute="height" constant="40" id="i8f-c9-6ta"/>
                                 </constraints>
                                 <state key="normal" title="Button"/>
-                                <buttonConfiguration key="configuration" style="plain"/>
+                                <buttonConfiguration key="configuration" style="plain" image="hand.draw" catalog="system"/>
                                 <connections>
-                                    <action selector="searchNext:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="Ehr-BR-aWQ"/>
+                                    <action selector="toggleDrawingMode:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="N1t-Au-Btp"/>
                                 </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="EBp-GB-sHz">
@@ -231,6 +231,7 @@
     </scenes>
     <resources>
         <image name="crop" catalog="system" width="128" height="116"/>
+        <image name="hand.draw" catalog="system" width="128" height="126"/>
         <image name="magnifyingglass" catalog="system" width="128" height="117"/>
         <image name="paintbrush" catalog="system" width="122" height="128"/>
         <image name="pencil" catalog="system" width="128" height="113"/>

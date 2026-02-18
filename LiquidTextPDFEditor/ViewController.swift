@@ -21,12 +21,16 @@ class ViewController: UIViewController {
     // MARK: IBOutlets — must match storyboard
     @IBOutlet weak var pdfContainerView: UIView!
     @IBOutlet weak var editorContainerView: UIView!
-
+    private var isDrawingMode = false
+    private var currentInkAnnotation: PDFAnnotation?
+    private var currentPath: UIBezierPath?
     // Child VCs
     private var pdfVC: PDFViewContainer!
     private var workspaceVC: WorkspaceEmbedVC!
     private var searchResults: [PDFSelection] = []
     private var currentSearchIndex = 0
+    private var drawingPanGesture: UIPanGestureRecognizer?
+    
     // Edit mode
     private var isEditMode = false
     private var pdfEdits: [PDFTextEdit] = []
@@ -93,6 +97,80 @@ class ViewController: UIViewController {
         }
         
         goToSearchResult(index: currentSearchIndex)
+    }
+    @IBAction func toggleDrawingMode(_ sender: Any) {
+        
+        isDrawingMode.toggle()
+        
+        pdfVC.pdfView.isUserInteractionEnabled = !isDrawingMode
+        
+        if isDrawingMode {
+            showToast("✏️ Drawing Mode ON")
+            enableDrawing()
+        } else {
+            showToast("Drawing Mode OFF")
+            disableDrawing()
+        }
+    }
+
+    private func disableDrawing() {
+        if let pan = drawingPanGesture {
+            pdfContainerView.removeGestureRecognizer(pan)
+        }
+    }
+    @objc private func handleDrawing(_ gesture: UIPanGestureRecognizer) {
+        
+        guard isDrawingMode,
+              let pdfView = pdfVC.pdfView else { return }
+        
+        let location = gesture.location(in: pdfView)
+        
+        guard let page = pdfView.page(for: location, nearest: true) else { return }
+        
+        let pagePoint = pdfView.convert(location, to: page)
+        
+        switch gesture.state {
+            
+        case .began:
+            
+            currentPath = UIBezierPath()
+            currentPath?.move(to: pagePoint)
+            
+            currentInkAnnotation = PDFAnnotation(bounds: page.bounds(for: pdfView.displayBox),
+                                                 forType: .ink,
+                                                 withProperties: nil)
+            
+            currentInkAnnotation?.color = UIColor.systemRed
+            currentInkAnnotation?.border = PDFBorder()
+            currentInkAnnotation?.border?.lineWidth = 2
+            
+            page.addAnnotation(currentInkAnnotation!)
+            
+        case .changed:
+            
+            currentPath?.addLine(to: pagePoint)
+            
+            if let path = currentPath {
+                currentInkAnnotation?.add(path)
+            }
+            
+        case .ended, .cancelled:
+            
+            currentPath = nil
+            currentInkAnnotation = nil
+            
+        default:
+            break
+        }
+    }
+    private func enableDrawing() {
+        
+        let pan = UIPanGestureRecognizer(target: self,
+                                         action: #selector(handleDrawing(_:)))
+        pan.maximumNumberOfTouches = 1
+        
+        pdfContainerView.addGestureRecognizer(pan)
+        drawingPanGesture = pan
     }
     @IBAction func searchPrevious(_ sender: Any) {
         guard !searchResults.isEmpty else { return }

@@ -10,7 +10,12 @@ struct PDFTextEdit {
     var newText: String
     let bounds: CGRect
 }
-
+enum HighlightTool {
+    case highlight
+    case underline
+    case strike
+    
+}
 class ViewController: UIViewController {
 
     // MARK: IBOutlets — must match storyboard
@@ -32,6 +37,8 @@ class ViewController: UIViewController {
     private let selectionLayer = CAShapeLayer()
     private var nextSearchButton: UIBarButtonItem!
     private var prevSearchButton: UIBarButtonItem!
+    private var currentHighlightTool: HighlightTool = .highlight
+    private var currentHighlightColor: UIColor = .yellow
     // Drag state
     private var dragGhost: UILabel?
     private var dragText: String?
@@ -96,6 +103,25 @@ class ViewController: UIViewController {
         }
         
         goToSearchResult(index: currentSearchIndex)
+    }
+    private func removeHighlightFromSelection() {
+
+        guard let pdfView = pdfVC.pdfView,
+              let selection = pdfView.currentSelection,
+              let page = selection.pages.first else { return }
+
+        let lines = selection.selectionsByLine()
+
+        for annotation in page.annotations {
+            for line in lines {
+                let bounds = line.bounds(for: page)
+                if annotation.bounds.intersects(bounds) {
+                    page.removeAnnotation(annotation)
+                }
+            }
+        }
+
+        pdfView.clearSelection()
     }
     
     private func showSearchAlert() {
@@ -177,7 +203,50 @@ class ViewController: UIViewController {
         pdfView.setCurrentSelection(selection, animate: true)
         pdfView.go(to: selection)
     }
-    @IBAction func highlightSelectedText(_ sender: Any) {
+    @IBAction func highlightSelectedText(_ sender: Any)
+     {
+
+        let alert = UIAlertController(title: "Highlight Tools",
+                                      message: nil,
+                                      preferredStyle: .actionSheet)
+
+        alert.addAction(UIAlertAction(title: "🟡 Yellow Highlight", style: .default) { _ in
+            self.currentHighlightTool = .highlight
+            self.currentHighlightColor = .yellow
+            self.applyHighlight()
+        })
+
+        alert.addAction(UIAlertAction(title: "🔵 Blue Highlight", style: .default) { _ in
+            self.currentHighlightTool = .highlight
+            self.currentHighlightColor = .systemBlue
+            self.applyHighlight()
+        })
+
+        alert.addAction(UIAlertAction(title: "🔴 Underline", style: .default) { _ in
+            self.currentHighlightTool = .underline
+            self.applyHighlight()
+        })
+
+        alert.addAction(UIAlertAction(title: "❌ Strike Through", style: .default) { _ in
+            self.currentHighlightTool = .strike
+            self.applyHighlight()
+        })
+ 
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+
+        if let pop = alert.popoverPresentationController {
+            pop.sourceView = view
+            pop.sourceRect = CGRect(x: view.bounds.midX,
+                                    y: view.bounds.midY,
+                                    width: 0,
+                                    height: 0)
+        }
+
+        present(alert, animated: true)
+    }
+    
+    
+    private func applyHighlight() {
 
         guard let pdfView = pdfVC.pdfView,
               let selection = pdfView.currentSelection,
@@ -186,7 +255,37 @@ class ViewController: UIViewController {
             return
         }
 
-        addHighlight(to: selection, on: page)
+        let lines = selection.selectionsByLine()
+
+        for line in lines {
+
+            let bounds = line.bounds(for: page)
+
+            let annotation: PDFAnnotation
+
+            switch currentHighlightTool {
+
+            case .highlight:
+                annotation = PDFAnnotation(bounds: bounds,
+                                           forType: .highlight,
+                                           withProperties: nil)
+                annotation.color = currentHighlightColor.withAlphaComponent(0.4)
+
+            case .underline:
+                annotation = PDFAnnotation(bounds: bounds,
+                                           forType: .underline,
+                                           withProperties: nil)
+                annotation.color = currentHighlightColor
+
+            case .strike:
+                annotation = PDFAnnotation(bounds: bounds,
+                                           forType: .strikeOut,
+                                           withProperties: nil)
+                annotation.color = currentHighlightColor
+            }
+
+            page.addAnnotation(annotation)
+        }
 
         pdfView.clearSelection()
     }
@@ -1205,7 +1304,7 @@ class PDFViewContainer: UIViewController {
 
 // MARK: - WorkspaceEmbedVC
 
-class WorkspaceEmbedVC: UIViewController {
+class WorkspaceEmbedVC: UIViewController, UIScrollViewDelegate {
     var canvas: WorkspaceCanvasView!
     var onBlockAction: ((WordBlockView, ViewController.BlockAction) -> Void)?
     private let scrollView = UIScrollView()
@@ -1216,6 +1315,9 @@ class WorkspaceEmbedVC: UIViewController {
         view.backgroundColor = UIColor(red: 0.91, green: 0.93, blue: 0.95, alpha: 1.0)
         setupScrollView()
         setupHint()
+    }
+    func viewForZooming(in scrollView: UIScrollView) -> UIView? {
+        return canvas
     }
     func addImageBlock(_ image: UIImage) {
         
@@ -1248,21 +1350,36 @@ class WorkspaceEmbedVC: UIViewController {
             animated: true
         )
     }
+    
     private func setupScrollView() {
+        
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.backgroundColor = .clear
         scrollView.alwaysBounceVertical = true
+        
+        // 🔥 ADD THESE
+        scrollView.delegate = self
+        scrollView.minimumZoomScale = 0.5
+        scrollView.maximumZoomScale = 2.0
+        scrollView.zoomScale = 1.0
+        
         view.addSubview(scrollView)
+        
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.topAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
         ])
+        
         canvas = WorkspaceCanvasView()
         canvas.backgroundColor = .clear
         canvas.frame = CGRect(x: 0, y: 0, width: 600, height: 3000)
-        canvas.onBlockTapped = { [weak self] bv in self?.onBlockAction?(bv, .tap) }
+        
+        canvas.onBlockTapped = { [weak self] bv in
+            self?.onBlockAction?(bv, .tap)
+        }
+        
         scrollView.addSubview(canvas)
         scrollView.contentSize = canvas.frame.size
     }

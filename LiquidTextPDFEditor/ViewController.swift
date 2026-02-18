@@ -30,7 +30,8 @@ class ViewController: UIViewController {
     private var searchResults: [PDFSelection] = []
     private var currentSearchIndex = 0
     private var drawingPanGesture: UIPanGestureRecognizer?
-    
+    private var isEraserMode = false
+    private var eraserTapGesture: UITapGestureRecognizer?
     // Edit mode
     private var isEditMode = false
     private var pdfEdits: [PDFTextEdit] = []
@@ -50,6 +51,7 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupPDFSide()
+       
         setupWorkspaceSide()
         setupEditOverlay()
         setupDragGesture()
@@ -83,6 +85,18 @@ class ViewController: UIViewController {
            selectionLayer.lineWidth = 2
            selectionLayer.fillColor = UIColor.clear.cgColor
            pdfContainerView.layer.addSublayer(selectionLayer)
+            workspaceVC.loadWorkspace()
+    }
+    @IBAction func undoAction(_ sender: Any) {
+        undoManager?.undo()
+    }
+
+    @IBAction func redoAction(_ sender: Any) {
+        undoManager?.redo()
+    }
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        workspaceVC.saveWorkspace()
     }
     @IBOutlet weak var thumbnailContainerView: UIView!
     @IBAction func searchTextTapped(_ sender: Any) {
@@ -98,6 +112,59 @@ class ViewController: UIViewController {
         
         goToSearchResult(index: currentSearchIndex)
     }
+    @IBAction func toggleEraserMode(_ sender: Any) {
+        
+        isEraserMode.toggle()
+        
+        if isEraserMode {
+            showToast("🧽 Eraser Mode ON")
+            enableEraser()
+        } else {
+            showToast("Eraser Mode OFF")
+            disableEraser()
+        }
+    }
+    
+    private func enableEraser() {
+        
+        let tap = UITapGestureRecognizer(target: self,
+                                         action: #selector(handleErase(_:)))
+        
+        pdfContainerView.addGestureRecognizer(tap)
+        eraserTapGesture = tap
+        
+        // Disable drawing while erasing
+        isDrawingMode = false
+    }
+    private func disableEraser() {
+        if let tap = eraserTapGesture {
+            pdfContainerView.removeGestureRecognizer(tap)
+        }
+    }
+    
+    @objc private func handleErase(_ gesture: UITapGestureRecognizer) {
+        
+        guard isEraserMode,
+              let pdfView = pdfVC.pdfView else { return }
+        
+        let location = gesture.location(in: pdfView)
+        
+        guard let page = pdfView.page(for: location, nearest: true) else { return }
+        
+        let pagePoint = pdfView.convert(location, to: page)
+        
+        for annotation in page.annotations {
+            
+            if annotation.type == "Ink" {
+                
+                if annotation.bounds.contains(pagePoint) {
+                    page.removeAnnotation(annotation)
+                    break
+                }
+            }
+        }
+    }
+    
     @IBAction func toggleDrawingMode(_ sender: Any) {
         
         isDrawingMode.toggle()
@@ -913,6 +980,12 @@ class ViewController: UIViewController {
 
     @IBAction func deleteSelected(_ sender: Any) {
         guard let bv = selectedBlock else { showToast("Tap a block first"); return }
+        let oldFrame = bv.frame
+
+        undoManager?.registerUndo(withTarget: self) { target in
+            target.workspaceVC.canvas.addExistingBlock(bv, frame: oldFrame)
+        }
+
         workspaceVC.canvas.removeBlock(bv)
         selectedBlock = nil
     }
@@ -1217,6 +1290,7 @@ class WorkspaceCanvasView: UIView {
     var connectors: [FlowConnectorView] = []
     var onBlockTapped: ((WordBlockView) -> Void)?
     private var dragOffset = CGPoint.zero
+    
 
     override func draw(_ rect: CGRect) {
         guard let ctx = UIGraphicsGetCurrentContext() else { return }
@@ -1249,6 +1323,11 @@ class WorkspaceCanvasView: UIView {
         return bv
     }
 
+    func addExistingBlock(_ block: WordBlockView, frame: CGRect) {
+        addSubview(block)
+        block.frame = frame
+        blockViews.append(block)
+    }
     func removeBlock(_ bv: WordBlockView) {
         connectors.filter { $0.fromBlock === bv || $0.toBlock === bv }.forEach { $0.removeFromSuperview() }
         connectors.removeAll { $0.fromBlock === bv || $0.toBlock === bv }
@@ -1290,6 +1369,19 @@ class WorkspaceCanvasView: UIView {
     @objc private func lp(_ g: UILongPressGestureRecognizer) {
         guard g.state == .began, let bv = g.view as? WordBlockView else { return }
         onBlockTapped?(bv)
+    }
+    func clearAll() {
+        
+        for block in blockViews {
+            block.removeFromSuperview()
+        }
+        
+        for connector in connectors {
+            connector.removeFromSuperview()
+        }
+        
+        blockViews.removeAll()
+        connectors.removeAll()
     }
 }
 
@@ -1397,6 +1489,102 @@ class WorkspaceEmbedVC: UIViewController, UIScrollViewDelegate {
     func viewForZooming(in scrollView: UIScrollView) -> UIView? {
         return canvas
     }
+    func addText(_ text: String) {
+
+        let block = WordBlock(text: text,
+                              position: CGPoint(x: 30, y: 40))
+        
+        let bv = canvas.addBlock(block)
+
+        // REGISTER UNDO
+        undoManager?.registerUndo(withTarget: self) { target in
+            target.canvas.removeBlock(bv)
+        }
+    }
+    func saveWorkspace() {
+        
+        var blocksToSave: [PersistedBlock] = []
+        
+        for bv in canvas.blockViews {
+            
+            let block = bv.block
+            
+            let persisted = PersistedBlock(
+                id: block.id.uuidString,
+                text: block.text.isEmpty ? nil : block.text,
+                imageData: block.image?.pngData(),
+                x: bv.frame.origin.x,
+                y: bv.frame.origin.y,
+                width: bv.frame.size.width,
+                height: bv.frame.size.height
+            )
+            
+            blocksToSave.append(persisted)
+        }
+        
+        var connectionsToSave: [PersistedConnection] = []
+        
+        for connector in canvas.connectors {
+            connectionsToSave.append(
+                PersistedConnection(
+                    fromID: connector.fromBlock.block.id.uuidString,
+                    toID: connector.toBlock.block.id.uuidString
+                )
+            )
+        }
+        
+        let state = WorkspaceState(
+            blocks: blocksToSave,
+            connections: connectionsToSave
+        )
+        
+        if let data = try? JSONEncoder().encode(state) {
+            let url = getWorkspaceURL()
+            try? data.write(to: url)
+        }
+    }
+    private func getWorkspaceURL() -> URL {
+        FileManager.default
+            .urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("workspace.json")
+    }
+    func loadWorkspace() {
+        
+        let url = getWorkspaceURL()
+        
+        guard let data = try? Data(contentsOf: url),
+              let state = try? JSONDecoder().decode(WorkspaceState.self, from: data)
+        else { return }
+        
+        canvas.clearAll()
+        
+        var blockMap: [String: WordBlockView] = [:]
+        
+        for item in state.blocks {
+            
+            let block = WordBlock(
+                text: item.text,
+                image: item.imageData != nil ? UIImage(data: item.imageData!) : nil,
+                position: CGPoint(x: item.x, y: item.y)
+            )
+            
+            let bv = canvas.addBlock(block)
+            bv.frame = CGRect(x: item.x,
+                              y: item.y,
+                              width: item.width,
+                              height: item.height)
+            
+            blockMap[item.id] = bv
+        }
+        
+        for connection in state.connections {
+            if let from = blockMap[connection.fromID],
+               let to = blockMap[connection.toID] {
+                canvas.connect(from: from, to: to)
+            }
+        }
+    }
+    
     func addImageBlock(_ image: UIImage) {
         
         hintLabel.isHidden = true
@@ -1483,18 +1671,7 @@ class WorkspaceEmbedVC: UIViewController, UIScrollViewDelegate {
         ])
     }
 
-    func addText(_ text: String) {
-        hintLabel.isHidden = true
-        let count = canvas.blockViews.count
-        let block = WordBlock(text: text, position: CGPoint(x: 30, y: 40 + CGFloat(count) * 80))
-        let bv = canvas.addBlock(block)
-        if count > 0, let prev = canvas.blockViews[safe: count - 1] {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
-                self?.canvas.connect(from: prev, to: bv)
-            }
-        }
-        scrollView.setContentOffset(CGPoint(x: 0, y: max(0, CGFloat(count) * 80 - 60)), animated: true)
-    }
+    
 
     func clearAll() {
         canvas.blockViews.forEach { $0.removeFromSuperview() }

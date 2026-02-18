@@ -96,9 +96,9 @@
                                     <constraint firstAttribute="height" constant="40" id="qUu-dc-Ac1"/>
                                 </constraints>
                                 <state key="normal" title="Button"/>
-                                <buttonConfiguration key="configuration" style="plain"/>
+                                <buttonConfiguration key="configuration" style="plain" image="eraser" catalog="system"/>
                                 <connections>
-                                    <action selector="searchPrevious:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="DyR-1f-MEP"/>
+                                    <action selector="toggleEraserMode:" destination="SIQ-5D-kKr" eventType="touchUpInside" id="qmW-lS-dB0"/>
                                 </connections>
                             </button>
                         </subviews>
@@ -208,7 +208,7 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="VrK-dd-1zx" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="936.58536585365857" y="-23.389830508474578"/>
+            <point key="canvasLocation" x="926" y="-23"/>
         </scene>
         <!--Navigation Controller-->
         <scene sceneID="F0V-fE-DtL">
@@ -231,6 +231,7 @@
     </scenes>
     <resources>
         <image name="crop" catalog="system" width="128" height="116"/>
+        <image name="eraser" catalog="system" width="128" height="119"/>
         <image name="hand.draw" catalog="system" width="128" height="126"/>
         <image name="magnifyingglass" catalog="system" width="128" height="117"/>
         <image name="paintbrush" catalog="system" width="122" height="128"/>

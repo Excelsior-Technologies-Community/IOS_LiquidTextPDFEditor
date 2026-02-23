@@ -4,18 +4,6 @@ import UniformTypeIdentifiers
 
 // MARK: - Models
 
-struct PDFTextEdit {
-    let pageIndex: Int
-    let originalText: String
-    var newText: String
-    let bounds: CGRect
-}
-enum HighlightTool {
-    case highlight
-    case underline
-    case strike
-    
-}
 class ViewController: UIViewController {
 
     // MARK: IBOutlets — must match storyboard
@@ -1767,4 +1755,17 @@ class DragInterceptView: UIView {
         isDragging = false
         touchStart = nil
     }
+}
+
+struct PDFTextEdit {
+    let pageIndex: Int
+    let originalText: String
+    var newText: String
+    let bounds: CGRect
+}
+enum HighlightTool {
+    case highlight
+    case underline
+    case strike
+    
 }

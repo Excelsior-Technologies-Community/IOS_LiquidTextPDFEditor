@@ -1460,6 +1460,92 @@ class PDFViewContainer: UIViewController {
     }
 }
 
+
+extension Array {
+    subscript(safe i: Int) -> Element? { indices.contains(i) ? self[i] : nil }
+}
+
+ 
+class DragInterceptView: UIView {
+    var onLongPress: ((CGPoint) -> Void)?
+    var onMove: ((CGPoint) -> Void)?
+    var onEnd: ((CGPoint) -> Void)?
+    var onCancel: (() -> Void)?
+
+    private var touchStart: CGPoint?
+    private var holdTimer: Timer?
+    private var isDragging = false
+    private let holdDuration: TimeInterval = 0.3
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isMultipleTouchEnabled = false
+        // CRITICAL: pass non-drag taps through to PDFView below
+        isUserInteractionEnabled = true
+    }
+    required init?(coder: NSCoder) { fatalError() }
+
+    // Forward hits through when not dragging so PDF scrolling still works
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        // Only intercept if we're actively dragging
+        if isDragging { return self }
+        // Otherwise let touches fall through to PDFView
+        return nil
+    }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first else { return }
+        let loc = touch.location(in: self)
+        touchStart = loc
+        isDragging = false
+
+        // Start hold timer
+        holdTimer?.invalidate()
+        holdTimer = Timer.scheduledTimer(withTimeInterval: holdDuration, repeats: false) { [weak self] _ in
+            guard let self = self, let start = self.touchStart else { return }
+            self.isDragging = true
+            // Haptic feedback
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            self.onLongPress?(start)
+        }
+    }
+
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first else { return }
+        let loc = touch.location(in: self)
+
+        // Cancel hold if moved too much before timer fires
+        if !isDragging {
+            if let start = touchStart {
+                let dx = loc.x - start.x, dy = loc.y - start.y
+                if sqrt(dx*dx + dy*dy) > 8 {
+                    holdTimer?.invalidate(); holdTimer = nil
+                    touchStart = nil
+                }
+            }
+            return
+        }
+        onMove?(loc)
+    }
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        holdTimer?.invalidate(); holdTimer = nil
+        guard let touch = touches.first else { isDragging = false; touchStart = nil; return }
+        let loc = touch.location(in: self)
+        if isDragging {
+            onEnd?(loc)
+        }
+        isDragging = false
+        touchStart = nil
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        holdTimer?.invalidate(); holdTimer = nil
+        if isDragging { onCancel?() }
+        isDragging = false
+        touchStart = nil
+    }
+}
+
 // MARK: - WorkspaceEmbedVC
 
 class WorkspaceEmbedVC: UIViewController, UIScrollViewDelegate {
@@ -1670,92 +1756,6 @@ class WorkspaceEmbedVC: UIViewController, UIScrollViewDelegate {
     }
 }
 
-
-
-extension Array {
-    subscript(safe i: Int) -> Element? { indices.contains(i) ? self[i] : nil }
-}
-
- 
-class DragInterceptView: UIView {
-    var onLongPress: ((CGPoint) -> Void)?
-    var onMove: ((CGPoint) -> Void)?
-    var onEnd: ((CGPoint) -> Void)?
-    var onCancel: (() -> Void)?
-
-    private var touchStart: CGPoint?
-    private var holdTimer: Timer?
-    private var isDragging = false
-    private let holdDuration: TimeInterval = 0.3
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        isMultipleTouchEnabled = false
-        // CRITICAL: pass non-drag taps through to PDFView below
-        isUserInteractionEnabled = true
-    }
-    required init?(coder: NSCoder) { fatalError() }
-
-    // Forward hits through when not dragging so PDF scrolling still works
-    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        // Only intercept if we're actively dragging
-        if isDragging { return self }
-        // Otherwise let touches fall through to PDFView
-        return nil
-    }
-
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let touch = touches.first else { return }
-        let loc = touch.location(in: self)
-        touchStart = loc
-        isDragging = false
-
-        // Start hold timer
-        holdTimer?.invalidate()
-        holdTimer = Timer.scheduledTimer(withTimeInterval: holdDuration, repeats: false) { [weak self] _ in
-            guard let self = self, let start = self.touchStart else { return }
-            self.isDragging = true
-            // Haptic feedback
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            self.onLongPress?(start)
-        }
-    }
-
-    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let touch = touches.first else { return }
-        let loc = touch.location(in: self)
-
-        // Cancel hold if moved too much before timer fires
-        if !isDragging {
-            if let start = touchStart {
-                let dx = loc.x - start.x, dy = loc.y - start.y
-                if sqrt(dx*dx + dy*dy) > 8 {
-                    holdTimer?.invalidate(); holdTimer = nil
-                    touchStart = nil
-                }
-            }
-            return
-        }
-        onMove?(loc)
-    }
-    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        holdTimer?.invalidate(); holdTimer = nil
-        guard let touch = touches.first else { isDragging = false; touchStart = nil; return }
-        let loc = touch.location(in: self)
-        if isDragging {
-            onEnd?(loc)
-        }
-        isDragging = false
-        touchStart = nil
-    }
-
-    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
-        holdTimer?.invalidate(); holdTimer = nil
-        if isDragging { onCancel?() }
-        isDragging = false
-        touchStart = nil
-    }
-}
 
 struct PDFTextEdit {
     let pageIndex: Int
